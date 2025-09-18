@@ -2,7 +2,7 @@ import CryptoJS from 'crypto-js';
 
 // 支付配置
 const PAYMENT_CONFIG = {
-  apiUrl: '/api/payment/createOrder', // 使用代理URL
+  apiUrl: 'https://2277857.pay.lanjingzf.com/createOrder', // 直接使用API URL
   queryUrl: 'https://2277857.pay.lanjingzf.com/queryOrder', // 支付状态查询接口
   callbackUrl: 'https://your-domain.com/payment/callback', // 支付回调地址
   appSecret: 'f659709e38ab01a9d77e52cdcda9a914', // 正确的通讯密钥
@@ -106,6 +106,9 @@ export async function createPaymentOrder(request: PaymentRequest): Promise<Payme
       },
       body: body.toString(),
       mode: 'cors'
+    }).catch(error => {
+      console.error('网络请求失败:', error);
+      throw new Error(`网络请求失败: ${error.message}`);
     });
     
     console.log('响应状态:', response.status);
@@ -219,6 +222,52 @@ export async function queryPaymentStatus(payId: string): Promise<PaymentResponse
       success: false,
       message: `查询失败: ${error instanceof Error ? error.message : '未知错误'}`,
       rawResponse: error instanceof Error ? error.message : '未知错误'
+    };
+  }
+}
+
+// 测试API连接
+export async function testApiConnection(): Promise<{success: boolean, message: string}> {
+  try {
+    console.log('测试API连接...');
+    
+    const testParams = {
+      payId: 'TEST_' + Date.now(),
+      param: '测试商品',
+      type: '1',
+      price: '0.01',
+      merchantNo: PAYMENT_CONFIG.merchantNo,
+      sign: generateSignature('TEST_' + Date.now(), '测试商品', '1', '0.01')
+    };
+    
+    const body = new URLSearchParams();
+    Object.entries(testParams).forEach(([key, value]) => {
+      body.append(key, String(value));
+    });
+    
+    const response = await fetch(PAYMENT_CONFIG.apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Accept': 'application/json, text/html, */*',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      },
+      body: body.toString(),
+      mode: 'cors'
+    });
+    
+    const responseText = await response.text();
+    console.log('API测试响应:', response.status, responseText);
+    
+    return {
+      success: response.ok,
+      message: `API连接测试: ${response.status} - ${responseText.substring(0, 100)}`
+    };
+  } catch (error) {
+    console.error('API连接测试失败:', error);
+    return {
+      success: false,
+      message: `API连接测试失败: ${error instanceof Error ? error.message : '未知错误'}`
     };
   }
 }

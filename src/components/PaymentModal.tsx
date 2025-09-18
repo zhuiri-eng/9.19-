@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { PaymentType, createPaymentOrder, PaymentStatus, pollPaymentStatus } from '@/services/paymentService';
+import { PaymentType, createPaymentOrder, PaymentStatus, pollPaymentStatus, testApiConnection } from '@/services/paymentService';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 
@@ -28,6 +28,21 @@ export default function PaymentModal({
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>(PaymentStatus.PENDING);
   const [isPolling, setIsPolling] = useState(false);
   const [stopPolling, setStopPolling] = useState<(() => void) | null>(null);
+
+  // 测试API连接
+  const handleTestApi = async () => {
+    try {
+      const result = await testApiConnection();
+      if (result.success) {
+        toast.success(result.message);
+      } else {
+        toast.error(result.message);
+      }
+    } catch (error) {
+      toast.error('API测试失败');
+      console.error('API测试错误:', error);
+    }
+  };
 
   const handlePayment = async () => {
     if (isProcessing) return;
@@ -391,6 +406,13 @@ export default function PaymentModal({
               className="flex-1 py-3 px-4 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 font-medium rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors"
             >
               取消
+            </button>
+            
+            <button
+              onClick={handleTestApi}
+              className="px-4 py-3 bg-yellow-500 hover:bg-yellow-600 text-white font-medium rounded-lg transition-colors"
+            >
+              测试API
             </button>
             
             {!qrCode && !payUrl ? (
