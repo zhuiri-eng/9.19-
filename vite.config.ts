@@ -9,6 +9,16 @@ function getPlugins() {
 
 export default defineConfig({
   plugins: getPlugins(),
+  build: {
+    outDir: 'dist',
+    assetsDir: 'assets',
+    sourcemap: false,
+    rollupOptions: {
+      input: {
+        main: './index.html'
+      }
+    }
+  },
   server: {
     proxy: {
       '/api/payment': {
