@@ -9,7 +9,6 @@
 # Functions 配置
 [functions]
   node_bundler = "esbuild"
-  runtime = "nodejs18.x"
 
 # 函数超时配置
 [functions.payment-callback]
