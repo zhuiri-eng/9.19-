@@ -5,7 +5,7 @@ const PAYMENT_CONFIG = {
   apiUrl: 'https://2277857.pay.lanjingzf.com/createOrder', // 直接使用API URL
   queryUrl: 'https://2277857.pay.lanjingzf.com/queryOrder', // 支付状态查询接口
   callbackUrl: 'https://statuesque-pastelito-3f8eae.netlify.app/payment/callback', // 同步回调地址（用户支付完成后跳转）
-  notifyUrl: 'https://webhook.site/your-unique-url', // 异步回调地址（需要替换为实际的服务器接口）
+  notifyUrl: 'https://statuesque-pastelito-3f8eae.netlify.app/.netlify/functions/payment-callback', // 异步回调地址（Netlify Function）
   appSecret: 'f659709e38ab01a9d77e52cdcda9a914', // 正确的通讯密钥
   merchantNo: '2277857', // 商户号
 };
