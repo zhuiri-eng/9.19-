@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CDN 回调测试工具</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .test-section { margin: 20px 0; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }
+        .test-section h3 { margin-top: 0; color: #333; }
+        .success { background: #d4edda; color: #155724; padding: 15px; border-radius: 8px; margin: 10px 0; }
+        .error { background: #f8d7da; color: #721c24; padding: 15px; border-radius: 8px; margin: 10px 0; }
+        .warning { background: #fff3cd; color: #856404; padding: 15px; border-radius: 8px; margin: 10px 0; }
+        .info { background: #e2e3e5; color: #383d41; padding: 15px; border-radius: 8px; margin: 10px 0; }
+        button { padding: 10px 20px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .url-display { word-break: break-all; font-family: monospace; background: #f8f9fa; padding: 10px; border-radius: 4px; margin: 5px 0; }
+        .test-result { margin-top: 10px; padding: 10px; border-radius: 4px; }
+        .log { background: #f8f9fa; padding: 10px; border-radius: 4px; font-family: monospace; white-space: pre-wrap; max-height: 300px; overflow-y: auto; }
+    </style>
+</head>
+<body>
+    <h1>🌐 CDN 回调测试工具</h1>
+    
+    <div class="test-section">
+        <h3>📋 CDN 问题诊断</h3>
+        <div class="warning">
+            <h4>⚠️ 可能的 CDN 问题：</h4>
+            <ul>
+                <li><strong>缓存问题</strong>：CDN 可能缓存了回调请求</li>
+                <li><strong>超时问题</strong>：CDN 可能有较短的超时时间</li>
+                <li><strong>方法限制</strong>：CDN 可能限制某些 HTTP 方法</li>
+                <li><strong>安全策略</strong>：CDN 可能拦截某些请求</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h3>🔧 回调地址测试</h3>
+        <button onclick="testAsyncCallback()">测试异步回调</button>
+        <button onclick="testSyncCallback()">测试同步回调</button>
+        <button onclick="testWithCacheBuster()">测试带缓存破坏的回调</button>
+        <button onclick="testMultipleMethods()">测试多种方法</button>
+        <div id="testResult" class="test-result" style="display: none;"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>📊 生成测试 URL</h3>
+        <div>
+            <label>订单号：</label>
+            <input type="text" id="payId" value="CDN_TEST_123456" style="width: 200px; padding: 5px; margin: 5px;">
+        </div>
+        <div>
+            <label>商品描述：</label>
+            <input type="text" id="param" value="CDN测试商品" style="width: 200px; padding: 5px; margin: 5px;">
+        </div>
+        <div>
+            <label>支付方式：</label>
+            <select id="type" style="padding: 5px; margin: 5px;">
+                <option value="1">微信支付</option>
+                <option value="2">支付宝支付</option>
+            </select>
+        </div>
+        <div>
+            <label>订单金额：</label>
+            <input type="text" id="price" value="0.01" style="width: 100px; padding: 5px; margin: 5px;">
+        </div>
+        <div>
+            <label>实际支付金额：</label>
+            <input type="text" id="reallyPrice" value="0.01" style="width: 100px; padding: 5px; margin: 5px;">
+        </div>
+        <button onclick="generateTestUrls()">生成测试URL</button>
+        <div id="urlResult" class="test-result" style="display: none;"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>📝 测试日志</h3>
+        <button onclick="clearLog()">清空日志</button>
+        <div id="testLog" class="log">等待测试...</div>
+    </div>
+
+    <div class="test-section">
+        <h3>🛠️ CDN 优化建议</h3>
+        <div class="info">
+            <h4>✅ 建议的 CDN 配置：</h4>
+            <ol>
+                <li><strong>禁用缓存</strong>：为回调地址设置 no-cache 头</li>
+                <li><strong>增加超时</strong>：设置较长的超时时间</li>
+                <li><strong>允许 GET 请求</strong>：确保 GET 请求不被拦截</li>
+                <li><strong>添加缓存破坏参数</strong>：使用时间戳参数</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        const appSecret = 'f659709e38ab01a9d77e52cdcda9a914';
+        const productionUrl = 'https://poetic-macaron-d0fbdb.netlify.app';
+
+        function log(message) {
+            const logDiv = document.getElementById('testLog');
+            const timestamp = new Date().toLocaleTimeString();
+            logDiv.textContent += `[${timestamp}] ${message}\n`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        function clearLog() {
+            document.getElementById('testLog').textContent = '日志已清空...\n';
+        }
+
+        function showResult(title, message, type) {
+            const resultDiv = document.getElementById('testResult');
+            resultDiv.innerHTML = `
+                <div class="${type}">
+                    <h4>${title}</h4>
+                    <p>${message}</p>
+                </div>
+            `;
+            resultDiv.style.display = 'block';
+        }
+
+        async function testAsyncCallback() {
+            log('开始测试异步回调...');
+            const testUrl = `${productionUrl}/.netlify/functions/payment-callback?test=1&timestamp=${Date.now()}`;
+            log(`测试URL: ${testUrl}`);
+            
+            try {
+                const response = await fetch(testUrl, {
+                    method: 'GET',
+                    cache: 'no-cache',
+                    headers: {
+                        'Cache-Control': 'no-cache',
+                        'Pragma': 'no-cache'
+                    }
+                });
+                
+                if (response.ok) {
+                    const text = await response.text();
+                    log(`异步回调测试成功: ${response.status} - ${text}`);
+                    showResult('✅ 异步回调测试成功', `状态码: ${response.status}`, 'success');
+                } else {
+                    log(`异步回调测试失败: ${response.status}`);
+                    showResult('❌ 异步回调测试失败', `状态码: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                log(`异步回调测试错误: ${error.message}`);
+                showResult('❌ 异步回调测试错误', error.message, 'error');
+            }
+        }
+
+        async function testSyncCallback() {
+            log('开始测试同步回调...');
+            const testUrl = `${productionUrl}/payment/callback?test=1&timestamp=${Date.now()}`;
+            log(`测试URL: ${testUrl}`);
+            
+            try {
+                const response = await fetch(testUrl, {
+                    method: 'GET',
+                    cache: 'no-cache'
+                });
+                
+                if (response.ok) {
+                    log(`同步回调测试成功: ${response.status}`);
+                    showResult('✅ 同步回调测试成功', `状态码: ${response.status}`, 'success');
+                } else {
+                    log(`同步回调测试失败: ${response.status}`);
+                    showResult('❌ 同步回调测试失败', `状态码: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                log(`同步回调测试错误: ${error.message}`);
+                showResult('❌ 同步回调测试错误', error.message, 'error');
+            }
+        }
+
+        async function testWithCacheBuster() {
+            log('开始测试带缓存破坏的回调...');
+            const timestamp = Date.now();
+            const randomId = Math.random().toString(36).substr(2, 9);
+            const testUrl = `${productionUrl}/.netlify/functions/payment-callback?test=1&timestamp=${timestamp}&random=${randomId}&_cb=${Date.now()}`;
+            log(`测试URL: ${testUrl}`);
+            
+            try {
+                const response = await fetch(testUrl, {
+                    method: 'GET',
+                    cache: 'no-cache',
+                    headers: {
+                        'Cache-Control': 'no-cache, no-store, must-revalidate',
+                        'Pragma': 'no-cache',
+                        'Expires': '0'
+                    }
+                });
+                
+                if (response.ok) {
+                    log(`缓存破坏测试成功: ${response.status}`);
+                    showResult('✅ 缓存破坏测试成功', `状态码: ${response.status}`, 'success');
+                } else {
+                    log(`缓存破坏测试失败: ${response.status}`);
+                    showResult('❌ 缓存破坏测试失败', `状态码: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                log(`缓存破坏测试错误: ${error.message}`);
+                showResult('❌ 缓存破坏测试错误', error.message, 'error');
+            }
+        }
+
+        async function testMultipleMethods() {
+            log('开始测试多种HTTP方法...');
+            const baseUrl = `${productionUrl}/.netlify/functions/payment-callback?test=1&timestamp=${Date.now()}`;
+            
+            const methods = ['GET', 'POST', 'OPTIONS'];
+            const results = [];
+            
+            for (const method of methods) {
+                try {
+                    log(`测试 ${method} 请求...`);
+                    const response = await fetch(baseUrl, {
+                        method: method,
+                        cache: 'no-cache'
+                    });
+                    results.push(`${method}: ${response.status}`);
+                    log(`${method} 请求结果: ${response.status}`);
+                } catch (error) {
+                    results.push(`${method}: ERROR - ${error.message}`);
+                    log(`${method} 请求错误: ${error.message}`);
+                }
+            }
+            
+            showResult('📊 多种方法测试结果', results.join('<br>'), 'info');
+        }
+
+        function generateTestUrls() {
+            const payId = document.getElementById('payId').value;
+            const param = document.getElementById('param').value;
+            const type = document.getElementById('type').value;
+            const price = document.getElementById('price').value;
+            const reallyPrice = document.getElementById('reallyPrice').value;
+
+            const signString = `${payId}${param}${type}${price}${reallyPrice}${appSecret}`;
+            const signature = CryptoJS.MD5(signString).toString();
+            const timestamp = Date.now();
+
+            const asyncUrl = `${productionUrl}/.netlify/functions/payment-callback?payId=${payId}&param=${param}&type=${type}&price=${price}&reallyPrice=${reallyPrice}&sign=${signature}&_t=${timestamp}`;
+            const syncUrl = `${productionUrl}/payment/callback?payId=${payId}&param=${param}&type=${type}&price=${price}&reallyPrice=${reallyPrice}&sign=${signature}&_t=${timestamp}`;
+
+            document.getElementById('urlResult').innerHTML = `
+                <h4>CDN 优化测试URL：</h4>
+                <h5>异步回调URL（带缓存破坏）：</h5>
+                <div class="url-display"><a href="${asyncUrl}" target="_blank">${asyncUrl}</a></div>
+                <h5>同步回调URL（带缓存破坏）：</h5>
+                <div class="url-display"><a href="${syncUrl}" target="_blank">${syncUrl}</a></div>
+                <h5>签名信息：</h5>
+                <p>签名字符串：${signString}</p>
+                <p>计算签名：${signature}</p>
+                <p>时间戳：${timestamp}</p>
+            `;
+            document.getElementById('urlResult').className = 'test-result info';
+            document.getElementById('urlResult').style.display = 'block';
+        }
+
+        // 页面加载时开始测试
+        window.onload = function() {
+            log('CDN 回调测试工具已加载');
+            log('开始自动测试...');
+            setTimeout(() => testAsyncCallback(), 1000);
+        };
+    </script>
+</body>
+</html>

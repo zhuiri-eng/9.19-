@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>简单回调处理器</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        .status { padding: 15px; margin: 10px 0; border-radius: 8px; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #e2e3e5; color: #383d41; }
+        .log { background: #f8f9fa; padding: 10px; border-radius: 4px; font-family: monospace; white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+    <h1>🔧 简单回调处理器</h1>
+    
+    <div id="callbackResult" class="status info">
+        <h3>等待回调数据...</h3>
+        <p>这个页面可以直接处理蓝鲸支付的回调请求</p>
+    </div>
+
+    <div id="callbackLog" class="log" style="display: none;">
+        回调日志将显示在这里...
+    </div>
+
+    <script>
+        const appSecret = 'f659709e38ab01a9d77e52cdcda9a914';
+
+        function handleCallback() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const payId = urlParams.get('payId');
+            const param = urlParams.get('param');
+            const type = urlParams.get('type');
+            const price = urlParams.get('price');
+            const reallyPrice = urlParams.get('reallyPrice');
+            const sign = urlParams.get('sign');
+
+            if (payId) {
+                console.log('收到回调参数:', { payId, param, type, price, reallyPrice, sign });
+                
+                // 验证签名
+                const signString = `${payId}${param}${type}${price}${reallyPrice}${appSecret}`;
+                const calculatedSign = CryptoJS.MD5(signString).toString();
+                
+                const isValid = calculatedSign === sign;
+                
+                const resultDiv = document.getElementById('callbackResult');
+                const logDiv = document.getElementById('callbackLog');
+                
+                if (isValid) {
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            <h3>✅ 支付回调验证成功！</h3>
+                            <p><strong>订单号：</strong>${payId}</p>
+                            <p><strong>商品描述：</strong>${param}</p>
+                            <p><strong>支付方式：</strong>${type === '1' ? '微信支付' : '支付宝支付'}</p>
+                            <p><strong>订单金额：</strong>¥${price}</p>
+                            <p><strong>实际支付金额：</strong>¥${reallyPrice}</p>
+                            <p><strong>验证时间：</strong>${new Date().toLocaleString()}</p>
+                        </div>
+                    `;
+                    
+                    logDiv.innerHTML = `
+[${new Date().toLocaleString()}] 支付回调处理成功
+订单号: ${payId}
+商品描述: ${param}
+支付方式: ${type === '1' ? '微信支付' : '支付宝支付'}
+订单金额: ¥${price}
+实际支付金额: ¥${reallyPrice}
+签名字符串: ${signString}
+计算签名: ${calculatedSign}
+接收签名: ${sign}
+签名验证: 通过
+处理结果: 成功
+                    `;
+                    logDiv.style.display = 'block';
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            <h3>❌ 支付回调验证失败！</h3>
+                            <p><strong>订单号：</strong>${payId}</p>
+                            <p><strong>错误原因：</strong>签名验证失败</p>
+                            <p><strong>计算签名：</strong>${calculatedSign}</p>
+                            <p><strong>接收签名：</strong>${sign}</p>
+                        </div>
+                    `;
+                    
+                    logDiv.innerHTML = `
+[${new Date().toLocaleString()}] 支付回调处理失败
+订单号: ${payId}
+商品描述: ${param}
+支付方式: ${type === '1' ? '微信支付' : '支付宝支付'}
+订单金额: ¥${price}
+实际支付金额: ¥${reallyPrice}
+签名字符串: ${signString}
+计算签名: ${calculatedSign}
+接收签名: ${sign}
+签名验证: 失败
+处理结果: 失败
+                    `;
+                    logDiv.style.display = 'block';
+                }
+            } else {
+                document.getElementById('callbackResult').innerHTML = `
+                    <div class="info">
+                        <h3>📋 简单回调处理器</h3>
+                        <p>这个页面可以处理蓝鲸支付的回调请求</p>
+                        <p><strong>使用方法：</strong></p>
+                        <ol>
+                            <li>在蓝鲸支付后台设置回调地址为：<code>https://poetic-macaron-d0fbdb.netlify.app/simple-callback.html</code></li>
+                            <li>支付完成后会自动跳转到此页面</li>
+                            <li>页面会自动验证签名并显示结果</li>
+                        </ol>
+                    </div>
+                `;
+            }
+        }
+
+        // 页面加载时处理回调
+        window.onload = handleCallback;
+    </script>
+</body>
+</html>

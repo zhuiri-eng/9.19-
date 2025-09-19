@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>最终回调测试</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 1000px; margin: 0 auto; padding: 20px; }
+        .config-section { margin: 20px 0; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }
+        .config-section h3 { margin-top: 0; color: #333; }
+        .success { background: #d4edda; color: #155724; padding: 15px; border-radius: 8px; margin: 10px 0; }
+        .error { background: #f8d7da; color: #721c24; padding: 15px; border-radius: 8px; margin: 10px 0; }
+        .warning { background: #fff3cd; color: #856404; padding: 15px; border-radius: 8px; margin: 10px 0; }
+        .info { background: #e2e3e5; color: #383d41; padding: 15px; border-radius: 8px; margin: 10px 0; }
+        button { padding: 10px 20px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .url-display { word-break: break-all; font-family: monospace; background: #f8f9fa; padding: 10px; border-radius: 4px; margin: 5px 0; }
+        .test-result { margin-top: 10px; padding: 10px; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <h1>🎯 最终回调测试工具</h1>
+    
+    <div class="config-section">
+        <h3>📋 新的回调配置（绕过CDN）</h3>
+        <div class="success">
+            <h4>✅ 蓝鲸支付后台配置：</h4>
+            
+            <h5>同步回调地址（returnUrl）：</h5>
+            <div class="url-display">
+                https://poetic-macaron-d0fbdb.netlify.app/simple-callback.html
+            </div>
+            
+            <h5>异步回调地址（notifyUrl）：</h5>
+            <div class="url-display">
+                https://poetic-macaron-d0fbdb.netlify.app/simple-callback.html
+            </div>
+            
+            <h5>通讯密钥：</h5>
+            <div class="url-display">
+                f659709e38ab01a9d77e52cdcda9a914
+            </div>
+        </div>
+    </div>
+
+    <div class="config-section">
+        <h3>🧪 测试简单回调</h3>
+        <button onclick="testSimpleCallback()">测试简单回调</button>
+        <button onclick="openSimpleCallback()">打开简单回调页面</button>
+        <div id="testResult" class="test-result" style="display: none;"></div>
+    </div>
+
+    <div class="config-section">
+        <h3>📊 生成测试URL</h3>
+        <div>
+            <label>订单号：</label>
+            <input type="text" id="payId" value="FINAL_TEST_123456" style="width: 200px; padding: 5px; margin: 5px;">
+        </div>
+        <div>
+            <label>商品描述：</label>
+            <input type="text" id="param" value="最终测试商品" style="width: 200px; padding: 5px; margin: 5px;">
+        </div>
+        <div>
+            <label>支付方式：</label>
+            <select id="type" style="padding: 5px; margin: 5px;">
+                <option value="1">微信支付</option>
+                <option value="2">支付宝支付</option>
+            </select>
+        </div>
+        <div>
+            <label>订单金额：</label>
+            <input type="text" id="price" value="0.01" style="width: 100px; padding: 5px; margin: 5px;">
+        </div>
+        <div>
+            <label>实际支付金额：</label>
+            <input type="text" id="reallyPrice" value="0.01" style="width: 100px; padding: 5px; margin: 5px;">
+        </div>
+        <button onclick="generateTestUrl()">生成测试URL</button>
+        <div id="urlResult" class="test-result" style="display: none;"></div>
+    </div>
+
+    <div class="config-section">
+        <h3>🌐 生产环境测试</h3>
+        <button onclick="openProductionSite()">打开生产网站</button>
+        <button onclick="testProductionPayment()">测试生产支付</button>
+        <div class="info">
+            <h4>测试步骤：</h4>
+            <ol>
+                <li>在蓝鲸支付后台更新回调地址为上述地址</li>
+                <li>访问生产网站进行支付测试</li>
+                <li>支付完成后会跳转到简单回调页面</li>
+                <li>检查回调页面是否显示支付成功信息</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        const appSecret = 'f659709e38ab01a9d77e52cdcda9a914';
+        const productionUrl = 'https://poetic-macaron-d0fbdb.netlify.app';
+
+        function testSimpleCallback() {
+            const testUrl = `${productionUrl}/simple-callback.html?test=1&timestamp=${Date.now()}`;
+            
+            fetch(testUrl)
+                .then(response => {
+                    if (response.ok) {
+                        showResult('✅ 简单回调测试成功', `状态码: ${response.status}`, 'success');
+                    } else {
+                        showResult('❌ 简单回调测试失败', `状态码: ${response.status}`, 'error');
+                    }
+                })
+                .catch(error => {
+                    showResult('❌ 简单回调测试错误', error.message, 'error');
+                });
+        }
+
+        function openSimpleCallback() {
+            window.open(`${productionUrl}/simple-callback.html`, '_blank');
+        }
+
+        function generateTestUrl() {
+            const payId = document.getElementById('payId').value;
+            const param = document.getElementById('param').value;
+            const type = document.getElementById('type').value;
+            const price = document.getElementById('price').value;
+            const reallyPrice = document.getElementById('reallyPrice').value;
+
+            const signString = `${payId}${param}${type}${price}${reallyPrice}${appSecret}`;
+            const signature = CryptoJS.MD5(signString).toString();
+
+            const testUrl = `${productionUrl}/simple-callback.html?payId=${payId}&param=${param}&type=${type}&price=${price}&reallyPrice=${reallyPrice}&sign=${signature}`;
+
+            document.getElementById('urlResult').innerHTML = `
+                <h4>测试回调URL：</h4>
+                <div class="url-display"><a href="${testUrl}" target="_blank">${testUrl}</a></div>
+                <h5>签名信息：</h5>
+                <p>签名字符串：${signString}</p>
+                <p>计算签名：${signature}</p>
+                <p><strong>说明：</strong>点击上述链接测试回调处理</p>
+            `;
+            document.getElementById('urlResult').className = 'test-result info';
+            document.getElementById('urlResult').style.display = 'block';
+        }
+
+        function openProductionSite() {
+            window.open(productionUrl, '_blank');
+        }
+
+        function testProductionPayment() {
+            window.open(`${productionUrl}/#/report`, '_blank');
+        }
+
+        function showResult(title, message, type) {
+            const resultDiv = document.getElementById('testResult');
+            resultDiv.innerHTML = `
+                <div class="${type}">
+                    <h4>${title}</h4>
+                    <p>${message}</p>
+                </div>
+            `;
+            resultDiv.style.display = 'block';
+        }
+    </script>
+</body>
+</html>

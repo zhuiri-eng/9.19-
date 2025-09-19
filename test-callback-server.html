@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>测试回调服务器</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 1000px; margin: 0 auto; padding: 20px; }
+        .test-section { margin: 20px 0; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }
+        .test-section h3 { margin-top: 0; color: #333; }
+        button { padding: 10px 20px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .result { margin-top: 10px; padding: 10px; border-radius: 4px; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #e2e3e5; color: #383d41; }
+        .url-display { word-break: break-all; font-family: monospace; background: #f8f9fa; padding: 10px; border-radius: 4px; margin: 5px 0; }
+    </style>
+</head>
+<body>
+    <h1>🔧 测试回调服务器</h1>
+    
+    <div class="test-section">
+        <h3>1. 当前可用的回调地址</h3>
+        <div class="info">
+            <p><strong>本地测试回调地址：</strong></p>
+            <div class="url-display">http://localhost:3002/test-callback-server.html</div>
+            <p><strong>说明：</strong>这个地址可以用于测试，但需要先启动本地服务器</p>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h3>2. 模拟异步回调处理</h3>
+        <p>这个页面可以模拟异步回调的处理过程：</p>
+        <button onclick="simulateAsyncCallback()">模拟异步回调</button>
+        <div id="asyncResult" class="result" style="display: none;"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>3. 生成测试回调URL</h3>
+        <div>
+            <label>订单号：</label>
+            <input type="text" id="payId" value="TEST_ORDER_123456" style="width: 200px; padding: 5px;">
+        </div>
+        <div>
+            <label>商品描述：</label>
+            <input type="text" id="param" value="测试商品" style="width: 200px; padding: 5px;">
+        </div>
+        <div>
+            <label>支付方式：</label>
+            <select id="type" style="padding: 5px;">
+                <option value="1">微信支付</option>
+                <option value="2">支付宝支付</option>
+            </select>
+        </div>
+        <div>
+            <label>订单金额：</label>
+            <input type="text" id="price" value="0.01" style="width: 100px; padding: 5px;">
+        </div>
+        <div>
+            <label>实际支付金额：</label>
+            <input type="text" id="reallyPrice" value="0.01" style="width: 100px; padding: 5px;">
+        </div>
+        <button onclick="generateTestCallback()">生成测试回调URL</button>
+        <div id="callbackResult" class="result" style="display: none;"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>4. 蓝鲸支付后台配置建议</h3>
+        <div class="info">
+            <h4>临时测试方案：</h4>
+            <ol>
+                <li><strong>同步回调地址：</strong>
+                    <br><code>http://localhost:3002/test-callback-server.html</code>
+                    <br><em>注意：这是本地地址，仅用于测试</em>
+                </li>
+                <li><strong>异步回调地址：</strong>
+                    <br><code>http://localhost:3002/test-callback-server.html</code>
+                    <br><em>注意：这是本地地址，仅用于测试</em>
+                </li>
+            </ol>
+            
+            <h4>生产环境方案：</h4>
+            <ol>
+                <li>先使用本地测试验证支付流程</li>
+                <li>确认无误后重新部署到 Netlify</li>
+                <li>使用 Netlify 地址配置蓝鲸支付后台</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        // 处理URL参数（模拟回调接收）
+        function handleCallbackParams() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const payId = urlParams.get('payId');
+            const param = urlParams.get('param');
+            const type = urlParams.get('type');
+            const price = urlParams.get('price');
+            const reallyPrice = urlParams.get('reallyPrice');
+            const sign = urlParams.get('sign');
+
+            if (payId) {
+                console.log('收到回调参数:', { payId, param, type, price, reallyPrice, sign });
+                
+                // 验证签名
+                const appSecret = 'f659709e38ab01a9d77e52cdcda9a914';
+                const signString = `${payId}${param}${type}${price}${reallyPrice}${appSecret}`;
+                const calculatedSign = CryptoJS.MD5(signString).toString();
+                
+                const isValid = calculatedSign === sign;
+                
+                document.body.innerHTML = `
+                    <div style="text-align: center; padding: 50px;">
+                        <h1 style="color: ${isValid ? '#28a745' : '#dc3545'};">
+                            ${isValid ? '✅ 回调验证成功' : '❌ 回调验证失败'}
+                        </h1>
+                        <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: left;">
+                            <p><strong>订单号：</strong>${payId}</p>
+                            <p><strong>商品描述：</strong>${param}</p>
+                            <p><strong>支付方式：</strong>${type === '1' ? '微信支付' : '支付宝支付'}</p>
+                            <p><strong>订单金额：</strong>¥${price}</p>
+                            <p><strong>实际支付金额：</strong>¥${reallyPrice}</p>
+                            <p><strong>签名验证：</strong>${isValid ? '通过' : '失败'}</p>
+                            <p><strong>时间：</strong>${new Date().toLocaleString()}</p>
+                        </div>
+                        <button onclick="window.location.href='test-callback-server.html'" style="padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                            返回测试页面
+                        </button>
+                    </div>
+                `;
+            }
+        }
+
+        function simulateAsyncCallback() {
+            const payId = 'SIMULATE_' + Date.now();
+            const param = '模拟测试商品';
+            const type = '1';
+            const price = '0.01';
+            const reallyPrice = '0.01';
+            const appSecret = 'f659709e38ab01a9d77e52cdcda9a914';
+
+            const signString = `${payId}${param}${type}${price}${reallyPrice}${appSecret}`;
+            const signature = CryptoJS.MD5(signString).toString();
+
+            const resultDiv = document.getElementById('asyncResult');
+            resultDiv.innerHTML = `
+                <h4>模拟异步回调处理：</h4>
+                <p><strong>订单号：</strong>${payId}</p>
+                <p><strong>商品描述：</strong>${param}</p>
+                <p><strong>支付方式：</strong>微信支付</p>
+                <p><strong>订单金额：</strong>¥${price}</p>
+                <p><strong>实际支付金额：</strong>¥${reallyPrice}</p>
+                <p><strong>签名字符串：</strong>${signString}</p>
+                <p><strong>计算签名：</strong>${signature}</p>
+                <p><strong>处理结果：</strong>✅ 成功（返回 "success"）</p>
+            `;
+            resultDiv.className = 'result success';
+            resultDiv.style.display = 'block';
+        }
+
+        function generateTestCallback() {
+            const payId = document.getElementById('payId').value;
+            const param = document.getElementById('param').value;
+            const type = document.getElementById('type').value;
+            const price = document.getElementById('price').value;
+            const reallyPrice = document.getElementById('reallyPrice').value;
+            const appSecret = 'f659709e38ab01a9d77e52cdcda9a914';
+
+            const signString = `${payId}${param}${type}${price}${reallyPrice}${appSecret}`;
+            const signature = CryptoJS.MD5(signString).toString();
+
+            const testUrl = `test-callback-server.html?payId=${payId}&param=${param}&type=${type}&price=${price}&reallyPrice=${reallyPrice}&sign=${signature}`;
+
+            document.getElementById('callbackResult').innerHTML = `
+                <h4>测试回调URL：</h4>
+                <div class="url-display"><a href="${testUrl}" target="_blank">${testUrl}</a></div>
+                <p><strong>签名信息：</strong></p>
+                <p>签名字符串：${signString}</p>
+                <p>计算签名：${signature}</p>
+                <p><strong>测试说明：</strong>点击上述链接测试回调处理</p>
+            `;
+            document.getElementById('callbackResult').className = 'result info';
+            document.getElementById('callbackResult').style.display = 'block';
+        }
+
+        // 页面加载时处理回调参数
+        window.onload = handleCallbackParams;
+    </script>
+</body>
+</html>

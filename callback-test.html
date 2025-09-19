@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>回调测试工具</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 1000px; margin: 0 auto; padding: 20px; }
+        .test-section { margin: 20px 0; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }
+        .test-section h3 { margin-top: 0; color: #333; }
+        button { padding: 10px 20px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .result { margin-top: 10px; padding: 10px; border-radius: 4px; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #e2e3e5; color: #383d41; }
+        .url-display { word-break: break-all; font-family: monospace; background: #f8f9fa; padding: 10px; border-radius: 4px; margin: 5px 0; }
+        input, select { padding: 8px; margin: 5px; border: 1px solid #ddd; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <h1>🧪 支付回调测试工具</h1>
+    
+    <div class="test-section">
+        <h3>1. 蓝鲸支付后台配置</h3>
+        <div class="info">
+            <p><strong>请在蓝鲸支付后台设置以下回调地址：</strong></p>
+            <div class="url-display">
+                <strong>同步回调（returnUrl）：</strong><br>
+                http://localhost:3002/callback-handler.html
+            </div>
+            <div class="url-display">
+                <strong>异步回调（notifyUrl）：</strong><br>
+                http://localhost:3002/callback-handler.html
+            </div>
+            <p><strong>通讯密钥：</strong>f659709e38ab01a9d77e52cdcda9a914</p>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h3>2. 生成测试回调URL</h3>
+        <div>
+            <label>订单号：</label>
+            <input type="text" id="payId" value="TEST_ORDER_123456" style="width: 200px;">
+        </div>
+        <div>
+            <label>商品描述：</label>
+            <input type="text" id="param" value="玄学命理分析报告" style="width: 200px;">
+        </div>
+        <div>
+            <label>支付方式：</label>
+            <select id="type">
+                <option value="1">微信支付</option>
+                <option value="2">支付宝支付</option>
+            </select>
+        </div>
+        <div>
+            <label>订单金额：</label>
+            <input type="text" id="price" value="9.99" style="width: 100px;">
+        </div>
+        <div>
+            <label>实际支付金额：</label>
+            <input type="text" id="reallyPrice" value="9.99" style="width: 100px;">
+        </div>
+        <button onclick="generateTestUrl()">生成测试URL</button>
+        <button onclick="testCallback()">测试回调</button>
+        <div id="testResult" class="result" style="display: none;"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>3. 回调处理器状态</h3>
+        <button onclick="openCallbackHandler()">打开回调处理器</button>
+        <button onclick="checkCallbackStatus()">检查状态</button>
+        <div id="statusResult" class="result" style="display: none;"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>4. 支付流程测试</h3>
+        <button onclick="openMainApp()">打开主应用</button>
+        <button onclick="openPaymentModal()">打开支付弹窗</button>
+        <div class="info">
+            <p><strong>测试步骤：</strong></p>
+            <ol>
+                <li>点击"打开主应用"</li>
+                <li>填写测试信息并生成报告</li>
+                <li>点击"立即支付"</li>
+                <li>选择支付方式并生成二维码</li>
+                <li>完成支付（或使用测试回调）</li>
+                <li>检查回调处理器是否收到通知</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        const appSecret = 'f659709e38ab01a9d77e52cdcda9a914';
+
+        function generateTestUrl() {
+            const payId = document.getElementById('payId').value;
+            const param = document.getElementById('param').value;
+            const type = document.getElementById('type').value;
+            const price = document.getElementById('price').value;
+            const reallyPrice = document.getElementById('reallyPrice').value;
+
+            const signString = `${payId}${param}${type}${price}${reallyPrice}${appSecret}`;
+            const signature = CryptoJS.MD5(signString).toString();
+
+            const testUrl = `callback-handler.html?payId=${payId}&param=${param}&type=${type}&price=${price}&reallyPrice=${reallyPrice}&sign=${signature}`;
+
+            document.getElementById('testResult').innerHTML = `
+                <h4>测试回调URL：</h4>
+                <div class="url-display"><a href="${testUrl}" target="_blank">${testUrl}</a></div>
+                <p><strong>签名信息：</strong></p>
+                <p>签名字符串：${signString}</p>
+                <p>计算签名：${signature}</p>
+                <p><strong>说明：</strong>点击上述链接测试回调处理</p>
+            `;
+            document.getElementById('testResult').className = 'result info';
+            document.getElementById('testResult').style.display = 'block';
+        }
+
+        function testCallback() {
+            const payId = 'TEST_' + Date.now();
+            const param = '测试商品';
+            const type = '1';
+            const price = '0.01';
+            const reallyPrice = '0.01';
+
+            const signString = `${payId}${param}${type}${price}${reallyPrice}${appSecret}`;
+            const signature = CryptoJS.MD5(signString).toString();
+
+            const testUrl = `callback-handler.html?payId=${payId}&param=${param}&type=${type}&price=${price}&reallyPrice=${reallyPrice}&sign=${signature}`;
+            
+            // 在新窗口打开测试
+            window.open(testUrl, '_blank');
+        }
+
+        function openCallbackHandler() {
+            window.open('callback-handler.html', '_blank');
+        }
+
+        function checkCallbackStatus() {
+            fetch('callback-handler.html')
+                .then(response => {
+                    if (response.ok) {
+                        document.getElementById('statusResult').innerHTML = `
+                            <div class="success">
+                                <h4>✅ 回调处理器状态正常</h4>
+                                <p>回调处理器正在运行，可以接收回调请求</p>
+                            </div>
+                        `;
+                    } else {
+                        throw new Error('回调处理器不可访问');
+                    }
+                })
+                .catch(error => {
+                    document.getElementById('statusResult').innerHTML = `
+                        <div class="error">
+                            <h4>❌ 回调处理器状态异常</h4>
+                            <p>错误：${error.message}</p>
+                        </div>
+                    `;
+                });
+            
+            document.getElementById('statusResult').className = 'result';
+            document.getElementById('statusResult').style.display = 'block';
+        }
+
+        function openMainApp() {
+            window.open('http://localhost:3002/', '_blank');
+        }
+
+        function openPaymentModal() {
+            // 直接跳转到支付页面
+            window.open('http://localhost:3002/#/report', '_blank');
+        }
+    </script>
+</body>
+</html>

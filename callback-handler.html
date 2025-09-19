@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>回调处理器</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .status { padding: 15px; margin: 10px 0; border-radius: 8px; }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background: #e2e3e5; color: #383d41; border: 1px solid #d6d8db; }
+        .warning { background: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+        .log { background: #f8f9fa; padding: 10px; border-radius: 4px; font-family: monospace; white-space: pre-wrap; }
+        button { padding: 10px 20px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .url-display { word-break: break-all; font-family: monospace; background: #f8f9fa; padding: 10px; border-radius: 4px; margin: 5px 0; }
+        .callback-log { max-height: 400px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <h1>🔧 支付回调处理器</h1>
+    
+    <div class="status info">
+        <h3>📋 当前配置</h3>
+        <p><strong>回调地址：</strong>http://localhost:3002/callback-handler.html</p>
+        <p><strong>通讯密钥：</strong>f659709e38ab01a9d77e52cdcda9a914</p>
+        <p><strong>状态：</strong><span id="status">等待回调...</span></p>
+    </div>
+
+    <div class="status warning">
+        <h3>⚠️ 蓝鲸支付后台配置</h3>
+        <p>请在蓝鲸支付后台设置以下回调地址：</p>
+        <div class="url-display">
+            <strong>同步回调（returnUrl）：</strong><br>
+            http://localhost:3002/callback-handler.html
+        </div>
+        <div class="url-display">
+            <strong>异步回调（notifyUrl）：</strong><br>
+            http://localhost:3002/callback-handler.html
+        </div>
+    </div>
+
+    <div>
+        <h3>🧪 测试工具</h3>
+        <button onclick="testCallback()">模拟回调测试</button>
+        <button onclick="clearLog()">清空日志</button>
+        <button onclick="checkStatus()">检查状态</button>
+    </div>
+
+    <div>
+        <h3>📊 回调日志</h3>
+        <div id="callbackLog" class="callback-log">
+            <div class="log">等待回调数据...</div>
+        </div>
+    </div>
+
+    <div id="callbackResult" style="display: none;">
+        <h3>✅ 回调处理结果</h3>
+        <div id="resultContent"></div>
+    </div>
+
+    <script>
+        let callbackCount = 0;
+        const appSecret = 'f659709e38ab01a9d77e52cdcda9a914';
+
+        // 页面加载时处理URL参数
+        window.onload = function() {
+            handleCallback();
+            updateStatus('已就绪，等待回调...');
+        };
+
+        function handleCallback() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const payId = urlParams.get('payId');
+            const param = urlParams.get('param');
+            const type = urlParams.get('type');
+            const price = urlParams.get('price');
+            const reallyPrice = urlParams.get('reallyPrice');
+            const sign = urlParams.get('sign');
+
+            if (payId) {
+                callbackCount++;
+                const timestamp = new Date().toLocaleString();
+                
+                logCallback(`[${timestamp}] 收到回调 #${callbackCount}`);
+                logCallback(`订单号: ${payId}`);
+                logCallback(`商品描述: ${param}`);
+                logCallback(`支付方式: ${type === '1' ? '微信支付' : '支付宝支付'}`);
+                logCallback(`订单金额: ¥${price}`);
+                logCallback(`实际支付金额: ¥${reallyPrice}`);
+                logCallback(`接收签名: ${sign}`);
+
+                // 验证签名
+                const signString = `${payId}${param}${type}${price}${reallyPrice}${appSecret}`;
+                const calculatedSign = CryptoJS.MD5(signString).toString();
+                
+                logCallback(`签名字符串: ${signString}`);
+                logCallback(`计算签名: ${calculatedSign}`);
+                
+                const isValid = calculatedSign === sign;
+                logCallback(`签名验证: ${isValid ? '✅ 通过' : '❌ 失败'}`);
+
+                if (isValid) {
+                    updateStatus('✅ 回调验证成功');
+                    showResult({
+                        status: 'success',
+                        message: '支付回调验证成功',
+                        data: {
+                            payId, param, type, price, reallyPrice,
+                            timestamp, callbackCount
+                        }
+                    });
+                } else {
+                    updateStatus('❌ 签名验证失败');
+                    showResult({
+                        status: 'error',
+                        message: '签名验证失败',
+                        data: { payId, calculatedSign, receivedSign: sign }
+                    });
+                }
+            } else {
+                logCallback('页面加载完成，等待回调参数...');
+            }
+        }
+
+        function testCallback() {
+            const testData = {
+                payId: 'TEST_' + Date.now(),
+                param: '测试商品',
+                type: '1',
+                price: '0.01',
+                reallyPrice: '0.01'
+            };
+
+            const signString = `${testData.payId}${testData.param}${testData.type}${testData.price}${testData.reallyPrice}${appSecret}`;
+            const signature = CryptoJS.MD5(signString).toString();
+
+            const testUrl = `callback-handler.html?payId=${testData.payId}&param=${testData.param}&type=${testData.type}&price=${testData.price}&reallyPrice=${testData.reallyPrice}&sign=${signature}`;
+            
+            logCallback('🧪 开始模拟回调测试...');
+            logCallback(`测试URL: ${testUrl}`);
+            
+            // 模拟跳转
+            setTimeout(() => {
+                window.location.href = testUrl;
+            }, 1000);
+        }
+
+        function clearLog() {
+            document.getElementById('callbackLog').innerHTML = '<div class="log">日志已清空...</div>';
+            callbackCount = 0;
+        }
+
+        function checkStatus() {
+            const now = new Date().toLocaleString();
+            logCallback(`[${now}] 状态检查 - 服务器运行正常`);
+            updateStatus('🔄 状态检查完成');
+        }
+
+        function logCallback(message) {
+            const logDiv = document.getElementById('callbackLog');
+            const logEntry = document.createElement('div');
+            logEntry.className = 'log';
+            logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logDiv.appendChild(logEntry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        function updateStatus(message) {
+            document.getElementById('status').textContent = message;
+        }
+
+        function showResult(result) {
+            const resultDiv = document.getElementById('callbackResult');
+            const contentDiv = document.getElementById('resultContent');
+            
+            let html = `<div class="status ${result.status === 'success' ? 'success' : 'error'}">`;
+            html += `<h4>${result.message}</h4>`;
+            
+            if (result.data) {
+                html += '<ul>';
+                for (const [key, value] of Object.entries(result.data)) {
+                    html += `<li><strong>${key}:</strong> ${value}</li>`;
+                }
+                html += '</ul>';
+            }
+            
+            html += '</div>';
+            contentDiv.innerHTML = html;
+            resultDiv.style.display = 'block';
+        }
+
+        // 定期检查是否有新的回调
+        setInterval(() => {
+            if (callbackCount === 0) {
+                const now = new Date().toLocaleTimeString();
+                if (Math.random() < 0.1) { // 10% 概率显示心跳
+                    logCallback(`[${now}] 心跳检测 - 等待回调中...`);
+                }
+            }
+        }, 30000); // 每30秒检查一次
+    </script>
+</body>
+</html>

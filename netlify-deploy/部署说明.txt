@@ -1,0 +1,37 @@
+🚀 Netlify 部署说明
+
+📁 部署文件夹：netlify-deploy
+📍 位置：C:\Users\zhengwei\Desktop\276486578946（8）\netlify-deploy
+
+📋 包含文件：
+✅ index.html - 主网站
+✅ payment-test.html - 简化版测试页面  
+✅ test-callback-advanced.html - 高级版测试页面
+✅ assets/ - 静态资源文件
+✅ src/ - 完整源代码
+✅ package.json - 项目依赖配置（包含Node.js版本要求）
+✅ vite.config.ts - Vite构建配置
+✅ tsconfig.json - TypeScript配置
+✅ tailwind.config.js - Tailwind CSS配置
+✅ postcss.config.js - PostCSS配置
+✅ .nvmrc - Node.js版本文件
+✅ .node-version - Node.js版本文件
+✅ .netlify/functions/payment-callback.js - 支付回调处理函数
+✅ netlify.toml - Netlify配置文件（包含Node.js 18和pnpm配置）
+✅ README.md - 详细说明文档
+
+🎯 部署步骤：
+1. 打开 https://netlify.com
+2. 登录您的账户
+3. 将整个 netlify-deploy 文件夹拖拽到 Netlify 部署区域
+4. 等待部署完成
+
+🌐 部署后访问地址：
+- 主网站：https://your-site-name.netlify.app/
+- 测试页面：https://your-site-name.netlify.app/payment-test.html
+
+🔧 支付回调配置：
+- 异步回调：https://your-site-name.netlify.app/.netlify/functions/payment-callback
+- 同步回调：https://your-site-name.netlify.app/payment/callback
+
+📞 如有问题请查看 README.md 文件

@@ -1,0 +1,43 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "18"
+
+# 针对回调的专门配置
+[[headers]]
+  for = "/.netlify/functions/payment-callback"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"
+    Pragma = "no-cache"
+    Expires = "0"
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Methods = "GET, POST, OPTIONS"
+    Access-Control-Allow-Headers = "Content-Type, Authorization"
+
+# 针对同步回调的配置
+[[headers]]
+  for = "/payment/callback"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"
+    Pragma = "no-cache"
+    Expires = "0"
+
+# SPA 重定向规则（放在最后）
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# 专门的回调重定向规则
+[[redirects]]
+  from = "/callback"
+  to = "/payment/callback"
+  status = 301
+
+# 测试回调地址
+[[redirects]]
+  from = "/test-callback"
+  to = "/.netlify/functions/payment-callback"
+  status = 301
