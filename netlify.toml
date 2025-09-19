@@ -5,7 +5,31 @@
 [build.environment]
   NODE_VERSION = "18"
 
+# Functions 配置
+[functions]
+  node_bundler = "esbuild"
+  runtime = "nodejs18.x"
+
+# 函数超时配置
+[functions.payment-callback]
+  timeout = 20
+
+[functions.payment-callback-enhanced]
+  timeout = 20
+
+# 重定向规则
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
+
+# 专门的回调重定向规则
+[[redirects]]
+  from = "/callback"
+  to = "/.netlify/functions/payment-callback"
+  status = 301
+
+[[redirects]]
+  from = "/payment-callback"
+  to = "/.netlify/functions/payment-callback"
+  status = 301
