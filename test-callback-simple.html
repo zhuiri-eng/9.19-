@@ -1,166 +1,30 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html>
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>支付回调测试工具</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
-    <style>
-        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
-        .test-section { margin: 20px 0; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }
-        .test-section h3 { margin-top: 0; color: #333; }
-        button { padding: 10px 20px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
-        button:hover { background: #0056b3; }
-        .result { margin-top: 10px; padding: 10px; border-radius: 4px; }
-        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
-        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
-        .info { background: #e2e3e5; color: #383d41; border: 1px solid #d6d8db; }
-        input, select { padding: 8px; margin: 5px; border: 1px solid #ddd; border-radius: 4px; }
-    </style>
+    <title>回调测试</title>
 </head>
 <body>
-    <h1>支付回调测试工具</h1>
+    <h1>回调测试页面</h1>
+    <p>如果您能看到这个页面，说明部署正常！</p>
     
-    <div class="test-section">
-        <h3>1. 配置信息</h3>
-        <div>
-            <label>回调地址：</label>
-            <input type="text" id="callbackUrl" value="https://spontaneous-haupia-55e958.netlify.app/.netlify/functions/payment-callback" style="width: 400px;">
-        </div>
-        <div>
-            <label>通讯密钥：</label>
-            <input type="text" id="appSecret" value="f659709e38ab01a9d77e52cdcda9a914" style="width: 300px;">
-        </div>
-    </div>
-
-    <div class="test-section">
-        <h3>2. 测试参数</h3>
-        <div>
-            <label>订单号：</label>
-            <input type="text" id="payId" value="TEST_ORDER_123456">
-        </div>
-        <div>
-            <label>商品描述：</label>
-            <input type="text" id="param" value="测试商品">
-        </div>
-        <div>
-            <label>支付方式：</label>
-            <select id="type">
-                <option value="1">微信支付</option>
-                <option value="2">支付宝支付</option>
-            </select>
-        </div>
-        <div>
-            <label>订单金额：</label>
-            <input type="text" id="price" value="0.01">
-        </div>
-        <div>
-            <label>实际支付金额：</label>
-            <input type="text" id="reallyPrice" value="0.01">
-        </div>
-    </div>
-
-    <div class="test-section">
-        <h3>3. 签名计算</h3>
-        <button onclick="calculateSignature()">计算签名</button>
-        <div id="signatureResult" class="result info" style="display: none;"></div>
-    </div>
-
-    <div class="test-section">
-        <h3>4. 测试回调</h3>
-        <button onclick="testAsyncCallback()">测试异步回调</button>
-        <button onclick="testSyncCallback()">测试同步回调</button>
-        <div id="callbackResult" class="result" style="display: none;"></div>
-    </div>
-
-    <div class="test-section">
-        <h3>5. 生成测试URL</h3>
-        <button onclick="generateTestUrl()">生成测试URL</button>
-        <div id="urlResult" class="result info" style="display: none;"></div>
-    </div>
-
+    <h2>测试回调</h2>
+    <button onclick="testCallback()">测试回调</button>
+    <div id="result"></div>
+    
     <script>
-        function calculateSignature() {
-            const payId = document.getElementById('payId').value;
-            const param = document.getElementById('param').value;
-            const type = document.getElementById('type').value;
-            const price = document.getElementById('price').value;
-            const reallyPrice = document.getElementById('reallyPrice').value;
-            const appSecret = document.getElementById('appSecret').value;
-
-            // 计算签名：md5(payId + param + type + price + reallyPrice + appSecret)
-            const signString = payId + param + type + price + reallyPrice + appSecret;
-            const signature = CryptoJS.MD5(signString).toString();
-
-            document.getElementById('signatureResult').innerHTML = 
-                `签名字符串：${signString}<br>计算签名：${signature}`;
-            document.getElementById('signatureResult').style.display = 'block';
-        }
-
-        async function testAsyncCallback() {
-            const callbackUrl = document.getElementById('callbackUrl').value;
-            const payId = document.getElementById('payId').value;
-            const param = document.getElementById('param').value;
-            const type = document.getElementById('type').value;
-            const price = document.getElementById('price').value;
-            const reallyPrice = document.getElementById('reallyPrice').value;
-            const appSecret = document.getElementById('appSecret').value;
-
-            // 计算签名
-            const signString = payId + param + type + price + reallyPrice + appSecret;
-            const signature = CryptoJS.MD5(signString).toString();
-
-            const testUrl = `${callbackUrl}?payId=${payId}&param=${param}&type=${type}&price=${price}&reallyPrice=${reallyPrice}&sign=${signature}`;
-            
+        async function testCallback() {
+            const url = 'https://phenomenal-meerkat-53edff.netlify.app/.netlify/functions/payment-callback?test=1';
             try {
-                const response = await fetch(testUrl);
+                const response = await fetch(url);
                 const text = await response.text();
-                
-                const resultDiv = document.getElementById('callbackResult');
-                if (response.ok && text === 'success') {
-                    resultDiv.className = 'result success';
-                    resultDiv.innerHTML = `✅ 异步回调测试成功！<br>响应：${text}`;
-                } else {
-                    resultDiv.className = 'result error';
-                    resultDiv.innerHTML = `❌ 异步回调测试失败！<br>状态码：${response.status}<br>响应：${text}`;
-                }
-                resultDiv.style.display = 'block';
+                document.getElementById('result').innerHTML = `
+                    <p>状态: ${response.status}</p>
+                    <p>响应: ${text}</p>
+                `;
             } catch (error) {
-                const resultDiv = document.getElementById('callbackResult');
-                resultDiv.className = 'result error';
-                resultDiv.innerHTML = `❌ 请求失败：${error.message}`;
-                resultDiv.style.display = 'block';
+                document.getElementById('result').innerHTML = `<p>错误: ${error.message}</p>`;
             }
-        }
-
-        function testSyncCallback() {
-            const payId = document.getElementById('payId').value;
-            const syncUrl = `https://spontaneous-haupia-55e958.netlify.app/payment/callback?type=return&payId=${payId}`;
-            
-            const resultDiv = document.getElementById('callbackResult');
-            resultDiv.className = 'result info';
-            resultDiv.innerHTML = `同步回调测试URL：<br><a href="${syncUrl}" target="_blank">${syncUrl}</a><br><br>点击链接测试同步回调`;
-            resultDiv.style.display = 'block';
-        }
-
-        function generateTestUrl() {
-            const callbackUrl = document.getElementById('callbackUrl').value;
-            const payId = document.getElementById('payId').value;
-            const param = document.getElementById('param').value;
-            const type = document.getElementById('type').value;
-            const price = document.getElementById('price').value;
-            const reallyPrice = document.getElementById('reallyPrice').value;
-            const appSecret = document.getElementById('appSecret').value;
-
-            // 计算签名
-            const signString = payId + param + type + price + reallyPrice + appSecret;
-            const signature = CryptoJS.MD5(signString).toString();
-
-            const testUrl = `${callbackUrl}?payId=${payId}&param=${param}&type=${type}&price=${price}&reallyPrice=${reallyPrice}&sign=${signature}`;
-            
-            document.getElementById('urlResult').innerHTML = 
-                `测试URL：<br><a href="${testUrl}" target="_blank">${testUrl}</a><br><br>复制此URL到浏览器地址栏进行测试`;
-            document.getElementById('urlResult').style.display = 'block';
         }
     </script>
 </body>
