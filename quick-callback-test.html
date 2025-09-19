@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>快速回调测试</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        .test-section { margin: 20px 0; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }
+        .success { background: #d4edda; color: #155724; padding: 15px; border-radius: 8px; margin: 10px 0; }
+        .error { background: #f8d7da; color: #721c24; padding: 15px; border-radius: 8px; margin: 10px 0; }
+        .url-display { word-break: break-all; font-family: monospace; background: #f8f9fa; padding: 10px; border-radius: 4px; margin: 5px 0; }
+        button { padding: 10px 20px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .log { background: #f8f9fa; padding: 10px; border-radius: 4px; font-family: monospace; white-space: pre-wrap; max-height: 300px; overflow-y: auto; }
+    </style>
+</head>
+<body>
+    <h1>🚀 快速回调测试</h1>
+    
+    <div class="test-section">
+        <h3>📋 测试参数</h3>
+        <div id="testParams">
+            <p><strong>payId:</strong> <span id="payId">TEST_1234567890</span></p>
+            <p><strong>param:</strong> <span id="param">测试商品</span></p>
+            <p><strong>type:</strong> <span id="type">1</span></p>
+            <p><strong>price:</strong> <span id="price">0.01</span></p>
+            <p><strong>reallyPrice:</strong> <span id="reallyPrice">0.01</span></p>
+            <p><strong>appSecret:</strong> f659709e38ab01a9d77e52cdcda9a914</p>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h3>🔐 签名计算</h3>
+        <div id="signatureInfo">
+            <p><strong>签名字符串:</strong></p>
+            <div class="url-display" id="signString">计算中...</div>
+            <p><strong>MD5签名:</strong></p>
+            <div class="url-display" id="signature">计算中...</div>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h3>🌐 测试URL</h3>
+        <div id="testUrls">
+            <p><strong>异步回调测试URL:</strong></p>
+            <div class="url-display" id="asyncUrl">生成中...</div>
+            <br>
+            <button onclick="testAsyncCallback()">测试异步回调</button>
+            <button onclick="testSyncCallback()">测试同步回调</button>
+            <button onclick="testWithCorrectSignature()">使用正确签名测试</button>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h3>📝 测试结果</h3>
+        <div id="testResult" class="log">等待测试...</div>
+    </div>
+
+    <script>
+        const appSecret = 'f659709e38ab01a9d77e52cdcda9a914';
+        const baseUrl = 'https://phenomenal-meerkat-53edff.netlify.app';
+        
+        let testData = {
+            payId: 'TEST_' + Date.now(),
+            param: '测试商品',
+            type: '1',
+            price: '0.01',
+            reallyPrice: '0.01'
+        };
+
+        function calculateSignature() {
+            // 更新显示
+            document.getElementById('payId').textContent = testData.payId;
+            document.getElementById('param').textContent = testData.param;
+            document.getElementById('type').textContent = testData.type;
+            document.getElementById('price').textContent = testData.price;
+            document.getElementById('reallyPrice').textContent = testData.reallyPrice;
+
+            // 计算签名
+            const signString = `${testData.payId}${testData.param}${testData.type}${testData.price}${testData.reallyPrice}${appSecret}`;
+            const signature = CryptoJS.MD5(signString).toString();
+            
+            document.getElementById('signString').textContent = signString;
+            document.getElementById('signature').textContent = signature;
+            
+            // 生成测试URL
+            const asyncUrl = `${baseUrl}/.netlify/functions/payment-callback?payId=${encodeURIComponent(testData.payId)}&param=${encodeURIComponent(testData.param)}&type=${testData.type}&price=${testData.price}&reallyPrice=${testData.reallyPrice}&sign=${signature}`;
+            document.getElementById('asyncUrl').textContent = asyncUrl;
+            
+            return { signature, asyncUrl };
+        }
+
+        function log(message) {
+            const logDiv = document.getElementById('testResult');
+            const timestamp = new Date().toLocaleTimeString();
+            logDiv.textContent += `[${timestamp}] ${message}\n`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        async function testAsyncCallback() {
+            log('=== 开始测试异步回调 ===');
+            const { signature, asyncUrl } = calculateSignature();
+            
+            try {
+                log(`请求URL: ${asyncUrl}`);
+                const response = await fetch(asyncUrl, {
+                    method: 'GET',
+                    mode: 'cors'
+                });
+                
+                const responseText = await response.text();
+                log(`响应状态: ${response.status}`);
+                log(`响应内容: ${responseText}`);
+                
+                if (response.ok && responseText.includes('success')) {
+                    log('✅ 异步回调测试成功！');
+                } else {
+                    log('❌ 异步回调测试失败');
+                }
+                
+            } catch (error) {
+                log(`❌ 请求失败: ${error.message}`);
+            }
+        }
+
+        async function testSyncCallback() {
+            log('=== 开始测试同步回调 ===');
+            const { signature } = calculateSignature();
+            
+            const syncUrl = `${baseUrl}/callback?payId=${encodeURIComponent(testData.payId)}&param=${encodeURIComponent(testData.param)}&type=${testData.type}&price=${testData.price}&reallyPrice=${testData.reallyPrice}&sign=${signature}`;
+            
+            try {
+                log(`请求URL: ${syncUrl}`);
+                const response = await fetch(syncUrl, {
+                    method: 'GET',
+                    mode: 'cors'
+                });
+                
+                const responseText = await response.text();
+                log(`响应状态: ${response.status}`);
+                log(`响应内容: ${responseText}`);
+                
+                if (response.ok) {
+                    log('✅ 同步回调测试成功！');
+                } else {
+                    log('❌ 同步回调测试失败');
+                }
+                
+            } catch (error) {
+                log(`❌ 请求失败: ${error.message}`);
+            }
+        }
+
+        async function testWithCorrectSignature() {
+            log('=== 使用正确签名测试 ===');
+            
+            // 重新生成测试数据
+            testData = {
+                payId: 'CORRECT_TEST_' + Date.now(),
+                param: '正确测试商品',
+                type: '1',
+                price: '0.01',
+                reallyPrice: '0.01'
+            };
+            
+            const { signature, asyncUrl } = calculateSignature();
+            
+            try {
+                log(`使用正确签名测试: ${signature}`);
+                log(`请求URL: ${asyncUrl}`);
+                
+                const response = await fetch(asyncUrl, {
+                    method: 'GET',
+                    mode: 'cors'
+                });
+                
+                const responseText = await response.text();
+                log(`响应状态: ${response.status}`);
+                log(`响应内容: ${responseText}`);
+                
+                if (response.ok) {
+                    log('✅ 正确签名测试成功！');
+                } else {
+                    log('❌ 正确签名测试失败');
+                }
+                
+            } catch (error) {
+                log(`❌ 请求失败: ${error.message}`);
+            }
+        }
+
+        // 页面加载时自动计算签名
+        window.onload = function() {
+            calculateSignature();
+            log('快速回调测试工具已加载');
+            log('点击按钮开始测试...');
+        };
+    </script>
+</body>
+</html>

@@ -33,7 +33,15 @@ exports.handler = async (event, context) => {
         queryParams = JSON.parse(event.body || '{}');
       } catch (e) {
         // 尝试解析表单数据
-        queryParams = event.body ? new URLSearchParams(event.body) : {};
+        if (event.body) {
+          const params = new URLSearchParams(event.body);
+          queryParams = {};
+          for (const [key, value] of params) {
+            queryParams[key] = value;
+          }
+        } else {
+          queryParams = {};
+        }
       }
     }
 
