@@ -1,12 +1,16 @@
 const crypto = require('crypto');
 
+// 简单的内存存储（生产环境建议使用数据库）
+const paymentRecords = new Map();
+
 exports.handler = async (event, context) => {
-  console.log('=== 支付回调开始 ===');
+  const timestamp = new Date().toISOString();
+  console.log(`[${timestamp}] === 支付回调开始 ===`);
   console.log('HTTP方法:', event.httpMethod);
   console.log('完整事件:', JSON.stringify(event, null, 2));
 
-  // 只处理GET请求
-  if (event.httpMethod !== 'GET') {
+  // 支持GET和POST请求
+  if (!['GET', 'POST'].includes(event.httpMethod)) {
     console.log('方法不允许:', event.httpMethod);
     return {
       statusCode: 405,
@@ -20,7 +24,19 @@ exports.handler = async (event, context) => {
 
   try {
     // 获取查询参数
-    const queryParams = event.queryStringParameters || {};
+    let queryParams = {};
+    
+    if (event.httpMethod === 'GET') {
+      queryParams = event.queryStringParameters || {};
+    } else if (event.httpMethod === 'POST') {
+      try {
+        queryParams = JSON.parse(event.body || '{}');
+      } catch (e) {
+        // 尝试解析表单数据
+        queryParams = event.body ? new URLSearchParams(event.body) : {};
+      }
+    }
+
     const { payId, param, type, price, reallyPrice, sign } = queryParams;
 
     console.log('原始查询参数:', queryParams);
@@ -42,7 +58,20 @@ exports.handler = async (event, context) => {
           'Content-Type': 'text/plain',
           'Access-Control-Allow-Origin': '*'
         },
-        body: 'Missing required parameters'
+        body: 'error_params'
+      };
+    }
+
+    // 检查是否已经处理过此订单
+    if (paymentRecords.has(payId)) {
+      console.log('订单已处理过，直接返回成功:', payId);
+      return {
+        statusCode: 200,
+        headers: {
+          'Content-Type': 'text/plain',
+          'Access-Control-Allow-Origin': '*'
+        },
+        body: 'success'
       };
     }
 
@@ -80,11 +109,32 @@ exports.handler = async (event, context) => {
       实际支付金额: reallyPrice
     });
 
+    // 记录支付成功
+    paymentRecords.set(payId, {
+      payId,
+      param,
+      type,
+      price,
+      reallyPrice,
+      timestamp: new Date().toISOString(),
+      status: 'paid'
+    });
+
     // 这里可以添加您的业务逻辑，比如：
     // 1. 更新数据库中的订单状态
     // 2. 发送邮件通知
     // 3. 调用其他API
     // 4. 记录日志等
+
+    // 模拟自动解锁逻辑
+    console.log('开始执行自动解锁逻辑...');
+    
+    // 这里可以添加解锁逻辑，比如：
+    // 1. 调用解锁API
+    // 2. 更新用户权限
+    // 3. 发送解锁通知等
+    
+    console.log(`订单 ${payId} 支付成功，已自动解锁用户权限`);
 
     console.log('=== 支付回调成功 ===');
     // 返回成功响应
