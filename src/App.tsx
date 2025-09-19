@@ -2,6 +2,7 @@ import { Routes, Route } from "react-router-dom";
 import Home from "@/pages/Home";
 import ReportPage from "@/pages/Report";
 import PaymentResult from "@/pages/PaymentResult";
+import PaymentCallback from "@/pages/PaymentCallback";
 import { useState } from "react";
 import { AuthContext } from '@/contexts/authContext';
 
@@ -34,6 +35,7 @@ export default function App() {
         <Route path="/" element={<Home />} />
         <Route path="/report" element={<ReportPage />} />
         <Route path="/payment-result" element={<PaymentResult />} />
+        <Route path="/payment/callback" element={<PaymentCallback />} />
       </Routes>
     </AuthContext.Provider>
   );

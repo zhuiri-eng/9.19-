@@ -4,7 +4,7 @@ import CryptoJS from 'crypto-js';
 const PAYMENT_CONFIG = {
   apiUrl: 'https://2277857.pay.lanjingzf.com/createOrder', // 直接使用API URL
   queryUrl: 'https://2277857.pay.lanjingzf.com/queryOrder', // 支付状态查询接口
-  callbackUrl: 'https://your-domain.com/payment/callback', // 支付回调地址
+  callbackUrl: 'https://statuesque-pastelito-3f8eae.netlify.app/payment/callback', // 支付回调地址
   appSecret: 'f659709e38ab01a9d77e52cdcda9a914', // 正确的通讯密钥
   merchantNo: '2277857', // 商户号
 };
@@ -81,6 +81,8 @@ export async function createPaymentOrder(request: PaymentRequest): Promise<Payme
     const requestParams = {
       ...request,
       merchantNo: request.merchantNo || PAYMENT_CONFIG.merchantNo, // 确保商户号被传入
+      returnUrl: request.returnUrl || `${PAYMENT_CONFIG.callbackUrl}?type=return&payId=${request.payId}`, // 同步回调地址
+      notifyUrl: request.notifyUrl || `${PAYMENT_CONFIG.callbackUrl}?type=notify&payId=${request.payId}`, // 异步回调地址
       sign: signature
     };
     
