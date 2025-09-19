@@ -4,8 +4,8 @@ import CryptoJS from 'crypto-js';
 const PAYMENT_CONFIG = {
   apiUrl: 'https://2277857.pay.lanjingzf.com/createOrder', // 直接使用API URL
   queryUrl: 'https://2277857.pay.lanjingzf.com/queryOrder', // 支付状态查询接口
-  callbackUrl: 'https://effortless-bienenstitch-3b0893.netlify.app/callback', // 同步回调地址（Netlify）
-  notifyUrl: 'https://effortless-bienenstitch-3b0893.netlify.app/.netlify/functions/payment-callback', // 异步回调地址（Netlify）
+  callbackUrl: 'https://phenomenal-meerkat-53edff.netlify.app/callback', // 同步回调地址（Netlify）
+  notifyUrl: 'https://phenomenal-meerkat-53edff.netlify.app/.netlify/functions/payment-callback', // 异步回调地址（Netlify）
   appSecret: 'f659709e38ab01a9d77e52cdcda9a914', // 正确的通讯密钥
   merchantNo: '2277857', // 商户号
 };
