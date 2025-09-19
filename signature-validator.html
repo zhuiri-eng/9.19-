@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>签名验证器</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .validator-section { margin: 20px 0; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }
+        .error { background: #f8d7da; color: #721c24; padding: 15px; border-radius: 8px; margin: 10px 0; }
+        .success { background: #d4edda; color: #155724; padding: 15px; border-radius: 8px; margin: 10px 0; }
+        .warning { background: #fff3cd; color: #856404; padding: 15px; border-radius: 8px; margin: 10px 0; }
+        .code-block { background: #f8f9fa; padding: 15px; border-radius: 4px; font-family: monospace; white-space: pre-wrap; margin: 10px 0; }
+        .url-display { word-break: break-all; font-family: monospace; background: #f8f9fa; padding: 10px; border-radius: 4px; margin: 5px 0; }
+        button { padding: 10px 20px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .log { background: #f8f9fa; padding: 10px; border-radius: 4px; font-family: monospace; white-space: pre-wrap; max-height: 400px; overflow-y: auto; }
+        .comparison { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .test-form { background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; }
+        .form-group { margin: 10px 0; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+        .form-group input { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <h1>🔐 签名验证器</h1>
+    
+    <div class="validator-section">
+        <h3>📝 手动测试</h3>
+        <div class="test-form">
+            <div class="form-group">
+                <label>商户订单号 (payId):</label>
+                <input type="text" id="payId" value="TEST_1234567890">
+            </div>
+            <div class="form-group">
+                <label>商品描述 (param):</label>
+                <input type="text" id="param" value="测试商品">
+            </div>
+            <div class="form-group">
+                <label>支付类型 (type):</label>
+                <input type="text" id="type" value="1">
+            </div>
+            <div class="form-group">
+                <label>订单金额 (price):</label>
+                <input type="text" id="price" value="0.01">
+            </div>
+            <div class="form-group">
+                <label>实际支付金额 (reallyPrice):</label>
+                <input type="text" id="reallyPrice" value="0.01">
+            </div>
+            <div class="form-group">
+                <label>通讯密钥 (appSecret):</label>
+                <input type="text" id="appSecret" value="f659709e38ab01a9d77e52cdcda9a914" readonly>
+            </div>
+            <button onclick="calculateAndTest()">计算签名并测试</button>
+        </div>
+    </div>
+
+    <div class="validator-section">
+        <h3>🔍 签名对比</h3>
+        <div class="comparison">
+            <div>
+                <h4>前端计算 (CryptoJS)</h4>
+                <div class="code-block" id="frontendResult">点击"计算签名并测试"查看结果</div>
+            </div>
+            <div>
+                <h4>后端计算 (Node.js crypto)</h4>
+                <div class="code-block" id="backendResult">点击"计算签名并测试"查看结果</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="validator-section">
+        <h3>🌐 实际测试</h3>
+        <div id="actualTestResult">
+            <div class="url-display" id="testUrl">点击"计算签名并测试"生成测试URL</div>
+            <button onclick="testCallback()">测试回调</button>
+        </div>
+    </div>
+
+    <div class="validator-section">
+        <h3>📝 调试日志</h3>
+        <button onclick="clearLog()">清空日志</button>
+        <div id="debugLog" class="log">等待测试...</div>
+    </div>
+
+    <div class="validator-section">
+        <h3>🧪 预设测试用例</h3>
+        <button onclick="testCase1()">测试用例1: 英文</button>
+        <button onclick="testCase2()">测试用例2: 中文</button>
+        <button onclick="testCase3()">测试用例3: 特殊字符</button>
+    </div>
+
+    <script>
+        const appSecret = 'f659709e38ab01a9d77e52cdcda9a914';
+        const baseUrl = 'https://phenomenal-meerkat-53edff.netlify.app';
+
+        function log(message) {
+            const logDiv = document.getElementById('debugLog');
+            const timestamp = new Date().toLocaleTimeString();
+            logDiv.textContent += `[${timestamp}] ${message}\n`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        function clearLog() {
+            document.getElementById('debugLog').textContent = '日志已清空...\n';
+        }
+
+        function calculateSignature(payId, param, type, price, reallyPrice) {
+            const signString = `${payId}${param}${type}${price}${reallyPrice}${appSecret}`;
+            const signature = CryptoJS.MD5(signString).toString();
+            return { signString, signature };
+        }
+
+        function calculateAndTest() {
+            const payId = document.getElementById('payId').value;
+            const param = document.getElementById('param').value;
+            const type = document.getElementById('type').value;
+            const price = document.getElementById('price').value;
+            const reallyPrice = document.getElementById('reallyPrice').value;
+
+            log('=== 开始签名计算 ===');
+            log(`输入参数:`);
+            log(`  payId: "${payId}"`);
+            log(`  param: "${param}"`);
+            log(`  type: "${type}"`);
+            log(`  price: "${price}"`);
+            log(`  reallyPrice: "${reallyPrice}"`);
+            log(`  appSecret: "${appSecret}"`);
+
+            const { signString, signature } = calculateSignature(payId, param, type, price, reallyPrice);
+
+            // 显示前端计算结果
+            document.getElementById('frontendResult').textContent = `
+签名字符串:
+"${signString}"
+
+MD5签名:
+"${signature}"
+
+字符长度: ${signString.length}
+签名长度: ${signature.length}
+            `;
+
+            // 显示后端计算结果（模拟Node.js crypto）
+            const backendSignString = `${payId}${param}${type}${price}${reallyPrice}${appSecret}`;
+            const backendSignature = CryptoJS.MD5(backendSignString).toString();
+            
+            document.getElementById('backendResult').textContent = `
+签名字符串:
+"${backendSignString}"
+
+MD5签名:
+"${backendSignature}"
+
+字符长度: ${backendSignString.length}
+签名长度: ${backendSignature.length}
+            `;
+
+            // 生成测试URL
+            const testUrl = `${baseUrl}/.netlify/functions/payment-callback?payId=${encodeURIComponent(payId)}&param=${encodeURIComponent(param)}&type=${type}&price=${price}&reallyPrice=${reallyPrice}&sign=${signature}`;
+            document.getElementById('testUrl').textContent = testUrl;
+
+            log(`签名字符串: "${signString}"`);
+            log(`计算签名: "${signature}"`);
+            log(`测试URL已生成`);
+
+            // 检查签名是否一致
+            if (signString === backendSignString && signature === backendSignature) {
+                log('✅ 前端和后端签名计算一致');
+            } else {
+                log('❌ 前端和后端签名计算不一致');
+            }
+        }
+
+        async function testCallback() {
+            const payId = document.getElementById('payId').value;
+            const param = document.getElementById('param').value;
+            const type = document.getElementById('type').value;
+            const price = document.getElementById('price').value;
+            const reallyPrice = document.getElementById('reallyPrice').value;
+
+            const { signature } = calculateSignature(payId, param, type, price, reallyPrice);
+            const testUrl = `${baseUrl}/.netlify/functions/payment-callback?payId=${encodeURIComponent(payId)}&param=${encodeURIComponent(param)}&type=${type}&price=${price}&reallyPrice=${reallyPrice}&sign=${signature}`;
+
+            log('=== 开始回调测试 ===');
+            log(`测试URL: ${testUrl}`);
+
+            try {
+                const response = await fetch(testUrl);
+                const responseText = await response.text();
+
+                log(`响应状态: ${response.status}`);
+                log(`响应内容: ${responseText}`);
+
+                if (response.ok && responseText.includes('success')) {
+                    log('✅ 回调测试成功！');
+                } else if (responseText.includes('error_sign')) {
+                    log('❌ 签名验证失败 - error_sign');
+                    log('可能原因:');
+                    log('1. 签名字符串拼接顺序错误');
+                    log('2. 参数类型不匹配');
+                    log('3. 字符编码问题');
+                    log('4. 通讯密钥错误');
+                } else if (responseText.includes('error_params')) {
+                    log('❌ 参数验证失败 - error_params');
+                } else {
+                    log(`❌ 其他错误: ${responseText}`);
+                }
+
+            } catch (error) {
+                log(`❌ 请求失败: ${error.message}`);
+            }
+        }
+
+        function testCase1() {
+            document.getElementById('payId').value = 'TEST_ENGLISH_123';
+            document.getElementById('param').value = 'English Product';
+            document.getElementById('type').value = '1';
+            document.getElementById('price').value = '1.00';
+            document.getElementById('reallyPrice').value = '1.00';
+            calculateAndTest();
+            log('=== 测试用例1: 英文参数 ===');
+        }
+
+        function testCase2() {
+            document.getElementById('payId').value = 'TEST_中文_456';
+            document.getElementById('param').value = '中文商品';
+            document.getElementById('type').value = '2';
+            document.getElementById('price').value = '9.99';
+            document.getElementById('reallyPrice').value = '9.99';
+            calculateAndTest();
+            log('=== 测试用例2: 中文参数 ===');
+        }
+
+        function testCase3() {
+            document.getElementById('payId').value = 'TEST_SPECIAL_789';
+            document.getElementById('param').value = '特殊字符!@#$%^&*()';
+            document.getElementById('type').value = '1';
+            document.getElementById('price').value = '0.01';
+            document.getElementById('reallyPrice').value = '0.01';
+            calculateAndTest();
+            log('=== 测试用例3: 特殊字符 ===');
+        }
+
+        // 页面加载时自动计算一次
+        window.onload = function() {
+            log('签名验证器已加载');
+            calculateAndTest();
+        };
+    </script>
+</body>
+</html>

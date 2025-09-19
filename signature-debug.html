@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>签名调试工具</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 1000px; margin: 0 auto; padding: 20px; }
+        .debug-section { margin: 20px 0; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }
+        .error { background: #f8d7da; color: #721c24; padding: 15px; border-radius: 8px; margin: 10px 0; }
+        .success { background: #d4edda; color: #155724; padding: 15px; border-radius: 8px; margin: 10px 0; }
+        .warning { background: #fff3cd; color: #856404; padding: 15px; border-radius: 8px; margin: 10px 0; }
+        .info { background: #e2e3e5; color: #383d41; padding: 15px; border-radius: 8px; margin: 10px 0; }
+        .code-block { background: #f8f9fa; padding: 15px; border-radius: 4px; font-family: monospace; white-space: pre-wrap; margin: 10px 0; }
+        .url-display { word-break: break-all; font-family: monospace; background: #f8f9fa; padding: 10px; border-radius: 4px; margin: 5px 0; }
+        button { padding: 10px 20px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .log { background: #f8f9fa; padding: 10px; border-radius: 4px; font-family: monospace; white-space: pre-wrap; max-height: 400px; overflow-y: auto; }
+        .comparison { display: flex; gap: 20px; }
+        .comparison > div { flex: 1; }
+    </style>
+</head>
+<body>
+    <h1>🔐 签名调试工具</h1>
+    
+    <div class="debug-section">
+        <h3>📋 签名规则说明</h3>
+        <div class="info">
+            <p><strong>签名算法：</strong>MD5 哈希算法</p>
+            <p><strong>输出格式：</strong>32位小写十六进制字符串</p>
+            <p><strong>拼接顺序：</strong>payId + param + type + price + reallyPrice + appSecret</p>
+            <p><strong>通讯密钥：</strong>f659709e38ab01a9d77e52cdcda9a914</p>
+        </div>
+    </div>
+
+    <div class="debug-section">
+        <h3>🧪 测试用例</h3>
+        <div class="comparison">
+            <div>
+                <h4>用例1：基础测试</h4>
+                <div class="code-block" id="testCase1">生成中...</div>
+                <button onclick="testCase1()">测试用例1</button>
+            </div>
+            <div>
+                <h4>用例2：中文测试</h4>
+                <div class="code-block" id="testCase2">生成中...</div>
+                <button onclick="testCase2()">测试用例2</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="debug-section">
+        <h3>🔍 签名对比</h3>
+        <div id="signatureComparison">
+            <p>点击测试用例查看详细对比...</p>
+        </div>
+    </div>
+
+    <div class="debug-section">
+        <h3>🌐 实际测试</h3>
+        <div id="actualTest">
+            <button onclick="testActualCallback()">测试实际回调</button>
+            <div class="url-display" id="testUrl">点击按钮生成测试URL</div>
+        </div>
+    </div>
+
+    <div class="debug-section">
+        <h3>📝 调试日志</h3>
+        <button onclick="clearLog()">清空日志</button>
+        <div id="debugLog" class="log">等待调试...</div>
+    </div>
+
+    <div class="debug-section">
+        <h3>🛠️ 常见问题</h3>
+        <div class="warning">
+            <h4>问题1：字符编码问题</h4>
+            <p>确保中文字符使用UTF-8编码</p>
+            
+            <h4>问题2：参数类型问题</h4>
+            <p>确保所有参数都是字符串类型</p>
+            
+            <h4>问题3：拼接顺序问题</h4>
+            <p>严格按照 payId + param + type + price + reallyPrice + appSecret 顺序</p>
+            
+            <h4>问题4：大小写问题</h4>
+            <p>MD5结果必须是32位小写十六进制</p>
+        </div>
+    </div>
+
+    <script>
+        const appSecret = 'f659709e38ab01a9d77e52cdcda9a914';
+        const baseUrl = 'https://phenomenal-meerkat-53edff.netlify.app';
+
+        function log(message) {
+            const logDiv = document.getElementById('debugLog');
+            const timestamp = new Date().toLocaleTimeString();
+            logDiv.textContent += `[${timestamp}] ${message}\n`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        function clearLog() {
+            document.getElementById('debugLog').textContent = '日志已清空...\n';
+        }
+
+        function generateSignature(payId, param, type, price, reallyPrice) {
+            const signString = `${payId}${param}${type}${price}${reallyPrice}${appSecret}`;
+            const signature = CryptoJS.MD5(signString).toString();
+            return { signString, signature };
+        }
+
+        function displayTestCase(name, data) {
+            const { signString, signature } = generateSignature(data.payId, data.param, data.type, data.price, data.reallyPrice);
+            
+            return `
+参数:
+  payId: "${data.payId}"
+  param: "${data.param}"
+  type: "${data.type}"
+  price: "${data.price}"
+  reallyPrice: "${data.reallyPrice}"
+  appSecret: "${appSecret}"
+
+签名字符串:
+"${signString}"
+
+MD5签名:
+"${signature}"
+
+字符长度: ${signString.length}
+签名长度: ${signature.length}
+            `;
+        }
+
+        function testCase1() {
+            const data = {
+                payId: 'TEST_1234567890',
+                param: 'Test Product',
+                type: '1',
+                price: '0.01',
+                reallyPrice: '0.01'
+            };
+            
+            document.getElementById('testCase1').textContent = displayTestCase('用例1', data);
+            
+            const { signature } = generateSignature(data.payId, data.param, data.type, data.price, data.reallyPrice);
+            
+            document.getElementById('signatureComparison').innerHTML = `
+                <h4>用例1签名详情</h4>
+                <div class="code-block">${displayTestCase('用例1', data)}</div>
+                <button onclick="testWithSignature('${signature}', ${JSON.stringify(data).replace(/"/g, '&quot;')})">使用此签名测试</button>
+            `;
+            
+            log(`用例1签名生成完成: ${signature}`);
+        }
+
+        function testCase2() {
+            const data = {
+                payId: 'TEST_中文测试',
+                param: '测试商品',
+                type: '2',
+                price: '9.99',
+                reallyPrice: '9.99'
+            };
+            
+            document.getElementById('testCase2').textContent = displayTestCase('用例2', data);
+            
+            const { signature } = generateSignature(data.payId, data.param, data.type, data.price, data.reallyPrice);
+            
+            document.getElementById('signatureComparison').innerHTML = `
+                <h4>用例2签名详情</h4>
+                <div class="code-block">${displayTestCase('用例2', data)}</div>
+                <button onclick="testWithSignature('${signature}', ${JSON.stringify(data).replace(/"/g, '&quot;')})">使用此签名测试</button>
+            `;
+            
+            log(`用例2签名生成完成: ${signature}`);
+        }
+
+        async function testWithSignature(signature, dataStr) {
+            const data = JSON.parse(dataStr.replace(/&quot;/g, '"'));
+            const testUrl = `${baseUrl}/.netlify/functions/payment-callback?payId=${encodeURIComponent(data.payId)}&param=${encodeURIComponent(data.param)}&type=${data.type}&price=${data.price}&reallyPrice=${data.reallyPrice}&sign=${signature}`;
+            
+            document.getElementById('testUrl').textContent = testUrl;
+            
+            log(`测试URL: ${testUrl}`);
+            
+            try {
+                const response = await fetch(testUrl);
+                const responseText = await response.text();
+                
+                log(`响应状态: ${response.status}`);
+                log(`响应内容: ${responseText}`);
+                
+                if (response.ok && responseText.includes('success')) {
+                    log('✅ 签名验证成功！');
+                } else if (responseText.includes('error_sign')) {
+                    log('❌ 签名验证失败 - error_sign');
+                } else {
+                    log(`❌ 其他错误: ${responseText}`);
+                }
+                
+            } catch (error) {
+                log(`❌ 请求失败: ${error.message}`);
+            }
+        }
+
+        async function testActualCallback() {
+            const data = {
+                payId: 'ACTUAL_TEST_' + Date.now(),
+                param: '实际测试商品',
+                type: '1',
+                price: '0.01',
+                reallyPrice: '0.01'
+            };
+            
+            const { signature } = generateSignature(data.payId, data.param, data.type, data.price, data.reallyPrice);
+            const testUrl = `${baseUrl}/.netlify/functions/payment-callback?payId=${encodeURIComponent(data.payId)}&param=${encodeURIComponent(data.param)}&type=${data.type}&price=${data.price}&reallyPrice=${data.reallyPrice}&sign=${signature}`;
+            
+            document.getElementById('testUrl').textContent = testUrl;
+            
+            log('=== 开始实际回调测试 ===');
+            log(`测试数据: ${JSON.stringify(data)}`);
+            log(`生成签名: ${signature}`);
+            log(`测试URL: ${testUrl}`);
+            
+            try {
+                const response = await fetch(testUrl);
+                const responseText = await response.text();
+                
+                log(`响应状态: ${response.status}`);
+                log(`响应内容: ${responseText}`);
+                
+                if (response.ok && responseText.includes('success')) {
+                    log('✅ 实际回调测试成功！');
+                } else if (responseText.includes('error_sign')) {
+                    log('❌ 签名验证失败 - 检查签名算法');
+                } else {
+                    log(`❌ 其他错误: ${responseText}`);
+                }
+                
+            } catch (error) {
+                log(`❌ 请求失败: ${error.message}`);
+            }
+        }
+
+        // 页面加载时自动生成测试用例
+        window.onload = function() {
+            log('签名调试工具已加载');
+            testCase1();
+            testCase2();
+        };
+    </script>
+</body>
+</html>
