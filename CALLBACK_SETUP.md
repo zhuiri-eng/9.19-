@@ -3,14 +3,14 @@
 ## 回调地址类型
 
 ### 1. 同步回调（returnUrl）
-- **地址**：`https://statuesque-pastelito-3f8eae.netlify.app/payment/callback`
+- **地址**：`https://spontaneous-haupia-55e958.netlify.app/payment/callback`
 - **作用**：用户支付完成后，第三方支付平台跳转到此地址
 - **特点**：用户能看到，用于显示支付结果
 - **触发条件**：使用 `isHtml=1` 时才会跳转
 - **配置位置**：支付平台后台 → 同步回调地址
 
 ### 2. 异步回调（notifyUrl）
-- **地址**：`https://statuesque-pastelito-3f8eae.netlify.app/.netlify/functions/payment-callback`
+- **地址**：`https://spontaneous-haupia-55e958.netlify.app/.netlify/functions/payment-callback`
 - **作用**：第三方支付平台服务器向您的系统发送支付通知
 - **特点**：用户看不到，是服务器之间的通信
 - **触发时机**：用户支付完成后立即发送GET请求
@@ -37,16 +37,16 @@
 
 ```javascript
 const PAYMENT_CONFIG = {
-  callbackUrl: 'https://statuesque-pastelito-3f8eae.netlify.app/payment/callback', // 同步回调
-  notifyUrl: 'https://statuesque-pastelito-3f8eae.netlify.app/.netlify/functions/payment-callback', // 异步回调
+  callbackUrl: 'https://spontaneous-haupia-55e958.netlify.app/payment/callback', // 同步回调
+  notifyUrl: 'https://spontaneous-haupia-55e958.netlify.app/.netlify/functions/payment-callback', // 异步回调
 };
 ```
 
 ## 支付平台配置
 
 在支付平台后台配置：
-- **同步回调地址**：`https://statuesque-pastelito-3f8eae.netlify.app/payment/callback`
-- **异步回调地址**：`https://statuesque-pastelito-3f8eae.netlify.app/.netlify/functions/payment-callback`
+- **同步回调地址**：`https://spontaneous-haupia-55e958.netlify.app/payment/callback`
+- **异步回调地址**：`https://spontaneous-haupia-55e958.netlify.app/.netlify/functions/payment-callback`
 
 ## Netlify Functions 说明
 
