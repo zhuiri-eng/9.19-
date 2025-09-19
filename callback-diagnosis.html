@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>回调诊断工具</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .diagnosis-section { margin: 20px 0; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }
+        .success { background: #d4edda; color: #155724; padding: 15px; border-radius: 8px; margin: 10px 0; }
+        .error { background: #f8d7da; color: #721c24; padding: 15px; border-radius: 8px; margin: 10px 0; }
+        .warning { background: #fff3cd; color: #856404; padding: 15px; border-radius: 8px; margin: 10px 0; }
+        .info { background: #e2e3e5; color: #383d41; padding: 15px; border-radius: 8px; margin: 10px 0; }
+        button { padding: 10px 20px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .url-display { word-break: break-all; font-family: monospace; background: #f8f9fa; padding: 10px; border-radius: 4px; margin: 5px 0; }
+        .log { background: #f8f9fa; padding: 10px; border-radius: 4px; font-family: monospace; white-space: pre-wrap; max-height: 400px; overflow-y: auto; }
+        .step { margin: 10px 0; padding: 10px; border-left: 4px solid #007bff; background: #f8f9fa; }
+    </style>
+</head>
+<body>
+    <h1>🔍 回调诊断工具</h1>
+    
+    <div class="diagnosis-section">
+        <h3>📋 当前配置信息</h3>
+        <div class="info">
+            <p><strong>网站地址：</strong>https://phenomenal-meerkat-53edff.netlify.app</p>
+            <p><strong>同步回调地址：</strong>https://phenomenal-meerkat-53edff.netlify.app/callback</p>
+            <p><strong>异步回调地址：</strong>https://phenomenal-meerkat-53edff.netlify.app/.netlify/functions/payment-callback</p>
+            <p><strong>通讯密钥：</strong>f659709e38ab01a9d77e52cdcda9a914</p>
+        </div>
+    </div>
+
+    <div class="diagnosis-section">
+        <h3>🔧 诊断步骤</h3>
+        <div class="step">
+            <h4>步骤1：测试基础连通性</h4>
+            <button onclick="testBasicConnectivity()">测试基础连通性</button>
+        </div>
+        <div class="step">
+            <h4>步骤2：测试 Netlify Functions</h4>
+            <button onclick="testNetlifyFunctions()">测试 Netlify Functions</button>
+        </div>
+        <div class="step">
+            <h4>步骤3：测试回调重定向</h4>
+            <button onclick="testCallbackRedirects()">测试回调重定向</button>
+        </div>
+        <div class="step">
+            <h4>步骤4：测试完整回调流程</h4>
+            <button onclick="testFullCallbackFlow()">测试完整回调流程</button>
+        </div>
+        <div class="step">
+            <h4>步骤5：检查环境变量</h4>
+            <button onclick="checkEnvironmentVariables()">检查环境变量</button>
+        </div>
+        <div id="diagnosisResult" class="diagnosis-section" style="display: none;"></div>
+    </div>
+
+    <div class="diagnosis-section">
+        <h3>📝 诊断日志</h3>
+        <button onclick="clearLog()">清空日志</button>
+        <div id="diagnosisLog" class="log">等待诊断...</div>
+    </div>
+
+    <div class="diagnosis-section">
+        <h3>🛠️ 常见问题解决方案</h3>
+        <div class="info">
+            <h4>问题1：环境变量未设置</h4>
+            <p>在 Netlify 控制台 → Site settings → Environment variables 中添加：</p>
+            <div class="url-display">PAY_API_KEY = f659709e38ab01a9d77e52cdcda9a914</div>
+            
+            <h4>问题2：Netlify Functions 未部署</h4>
+            <p>检查 netlify/functions/ 目录下是否有 payment-callback.js 文件</p>
+            
+            <h4>问题3：重定向规则问题</h4>
+            <p>检查 netlify.toml 中的重定向规则是否正确</p>
+            
+            <h4>问题4：签名验证失败</h4>
+            <p>检查通讯密钥是否正确，签名算法是否匹配</p>
+        </div>
+    </div>
+
+    <script>
+        const appSecret = 'f659709e38ab01a9d77e52cdcda9a914';
+        const baseUrl = 'https://phenomenal-meerkat-53edff.netlify.app';
+
+        function log(message) {
+            const logDiv = document.getElementById('diagnosisLog');
+            const timestamp = new Date().toLocaleTimeString();
+            logDiv.textContent += `[${timestamp}] ${message}\n`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        function clearLog() {
+            document.getElementById('diagnosisLog').textContent = '日志已清空...\n';
+        }
+
+        function showResult(title, message, type) {
+            const resultDiv = document.getElementById('diagnosisResult');
+            resultDiv.innerHTML = `
+                <h3>${title}</h3>
+                <div class="${type}">
+                    <p>${message}</p>
+                </div>
+            `;
+            resultDiv.style.display = 'block';
+        }
+
+        async function testBasicConnectivity() {
+            log('=== 开始测试基础连通性 ===');
+            
+            try {
+                // 测试主站点
+                log('测试主站点连通性...');
+                const mainResponse = await fetch(baseUrl);
+                if (mainResponse.ok) {
+                    log('✅ 主站点连通正常');
+                } else {
+                    log(`❌ 主站点连通失败: ${mainResponse.status}`);
+                }
+
+                // 测试同步回调
+                log('测试同步回调连通性...');
+                const syncResponse = await fetch(`${baseUrl}/callback?test=1`);
+                log(`同步回调响应: ${syncResponse.status} - ${await syncResponse.text()}`);
+
+                // 测试异步回调
+                log('测试异步回调连通性...');
+                const asyncResponse = await fetch(`${baseUrl}/.netlify/functions/payment-callback?test=1`);
+                log(`异步回调响应: ${asyncResponse.status} - ${await asyncResponse.text()}`);
+
+            } catch (error) {
+                log(`❌ 连通性测试失败: ${error.message}`);
+            }
+        }
+
+        async function testNetlifyFunctions() {
+            log('=== 开始测试 Netlify Functions ===');
+            
+            try {
+                // 测试基础函数
+                const response = await fetch(`${baseUrl}/.netlify/functions/payment-callback`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const responseText = await response.text();
+                log(`Netlify Function 响应: ${response.status}`);
+                log(`响应内容: ${responseText}`);
+                
+                if (response.ok) {
+                    log('✅ Netlify Functions 工作正常');
+                } else {
+                    log('❌ Netlify Functions 工作异常');
+                }
+
+            } catch (error) {
+                log(`❌ Netlify Functions 测试失败: ${error.message}`);
+            }
+        }
+
+        async function testCallbackRedirects() {
+            log('=== 开始测试回调重定向 ===');
+            
+            try {
+                // 测试同步回调重定向
+                const syncResponse = await fetch(`${baseUrl}/callback`, {
+                    method: 'GET',
+                    redirect: 'manual'
+                });
+                
+                log(`同步回调重定向状态: ${syncResponse.status}`);
+                if (syncResponse.status === 301 || syncResponse.status === 302) {
+                    log(`重定向到: ${syncResponse.headers.get('Location')}`);
+                }
+
+                // 测试异步回调重定向
+                const asyncResponse = await fetch(`${baseUrl}/payment-callback`, {
+                    method: 'GET',
+                    redirect: 'manual'
+                });
+                
+                log(`异步回调重定向状态: ${asyncResponse.status}`);
+                if (asyncResponse.status === 301 || asyncResponse.status === 302) {
+                    log(`重定向到: ${asyncResponse.headers.get('Location')}`);
+                }
+
+            } catch (error) {
+                log(`❌ 重定向测试失败: ${error.message}`);
+            }
+        }
+
+        async function testFullCallbackFlow() {
+            log('=== 开始测试完整回调流程 ===');
+            
+            const testData = {
+                payId: 'DIAGNOSIS_TEST_' + Date.now(),
+                param: '诊断测试商品',
+                type: '1',
+                price: '0.01',
+                reallyPrice: '0.01'
+            };
+
+            // 生成签名
+            const signString = `${testData.payId}${testData.param}${testData.type}${testData.price}${testData.reallyPrice}${appSecret}`;
+            const signature = CryptoJS.MD5(signString).toString();
+            
+            log(`测试数据: ${JSON.stringify(testData)}`);
+            log(`签名字符串: ${signString}`);
+            log(`计算签名: ${signature}`);
+
+            try {
+                // 测试异步回调
+                const asyncUrl = `${baseUrl}/.netlify/functions/payment-callback?payId=${testData.payId}&param=${testData.param}&type=${testData.type}&price=${testData.price}&reallyPrice=${testData.reallyPrice}&sign=${signature}`;
+                log(`异步回调URL: ${asyncUrl}`);
+                
+                const asyncResponse = await fetch(asyncUrl);
+                const asyncText = await asyncResponse.text();
+                
+                log(`异步回调响应: ${asyncResponse.status} - ${asyncText}`);
+                
+                if (asyncResponse.ok && asyncText.includes('success')) {
+                    log('✅ 异步回调测试成功');
+                } else {
+                    log('❌ 异步回调测试失败');
+                }
+
+            } catch (error) {
+                log(`❌ 完整回调流程测试失败: ${error.message}`);
+            }
+        }
+
+        async function checkEnvironmentVariables() {
+            log('=== 检查环境变量 ===');
+            
+            try {
+                // 通过测试请求检查环境变量是否正确设置
+                const response = await fetch(`${baseUrl}/.netlify/functions/payment-callback?env_check=1`);
+                const responseText = await response.text();
+                
+                log(`环境变量检查响应: ${response.status} - ${responseText}`);
+                
+                if (responseText.includes('警告：使用硬编码的通讯密钥')) {
+                    log('⚠️ 环境变量 PAY_API_KEY 未正确设置');
+                    showResult('环境变量问题', '环境变量 PAY_API_KEY 未正确设置，请检查 Netlify 控制台配置', 'warning');
+                } else {
+                    log('✅ 环境变量配置正常');
+                }
+
+            } catch (error) {
+                log(`❌ 环境变量检查失败: ${error.message}`);
+            }
+        }
+
+        // 页面加载时自动开始诊断
+        window.onload = function() {
+            log('回调诊断工具已加载');
+            log('开始自动诊断...');
+            setTimeout(() => {
+                testBasicConnectivity();
+                setTimeout(() => testNetlifyFunctions(), 2000);
+                setTimeout(() => testCallbackRedirects(), 4000);
+                setTimeout(() => testFullCallbackFlow(), 6000);
+                setTimeout(() => checkEnvironmentVariables(), 8000);
+            }, 1000);
+        };
+    </script>
+</body>
+</html>
