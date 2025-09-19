@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { PaymentType, createPaymentOrder, PaymentStatus, pollPaymentStatus, testApiConnection } from '@/services/paymentService';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
+import QRCode from 'qrcode';
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -22,6 +23,7 @@ export default function PaymentModal({
   const [selectedPaymentType, setSelectedPaymentType] = useState<PaymentType>(PaymentType.WECHAT);
   const [isProcessing, setIsProcessing] = useState(false);
   const [qrCode, setQrCode] = useState<string>('');
+  const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>(''); // 二维码图片数据
   const [payUrl, setPayUrl] = useState<string>('');
   const [currentPayId, setCurrentPayId] = useState<string>('');
   const [currentOrderId, setCurrentOrderId] = useState<string>('');
@@ -60,7 +62,7 @@ export default function PaymentModal({
         param: productName,
         type: selectedPaymentType,
         price: amount,
-        isHtml: 1
+        isHtml: 0  // 使用0来获取二维码而不是跳转
       });
       
       console.log('支付订单创建结果:', result);
@@ -82,7 +84,7 @@ export default function PaymentModal({
         
         // 检查是否是重定向响应
         if (result.data.redirectScript) {
-          console.log('检测到重定向脚本，显示支付页面');
+          console.log('检测到重定向脚本，生成二维码');
           console.log('重定向脚本内容:', result.data.redirectScript);
           console.log('提取的支付URL:', result.data.payUrl);
           
@@ -90,19 +92,54 @@ export default function PaymentModal({
           const fullPayUrl = `https://2277857.pay.lanjingzf.com${result.data.payUrl}`;
           console.log('完整支付URL:', fullPayUrl);
           setPayUrl(fullPayUrl);
-          toast.success('订单创建成功，请点击支付按钮');
-          // 暂时禁用轮询，先让支付按钮正常工作
-          // startPolling(result.data.payId);
+          
+          // 生成二维码
+          try {
+            const qrCodeDataUrl = await QRCode.toDataURL(fullPayUrl, {
+              width: 256,
+              margin: 2,
+              color: {
+                dark: '#000000',
+                light: '#FFFFFF'
+              }
+            });
+            setQrCodeDataUrl(qrCodeDataUrl);
+            setQrCode(fullPayUrl);
+            toast.success('订单创建成功，请扫码支付');
+            
+            // 开始轮询支付状态
+            startPolling(result.data.payId);
+          } catch (error) {
+            console.error('生成二维码失败:', error);
+            toast.error('生成二维码失败，请重试');
+          }
           return;
         }
         
         // 优先显示二维码，如果没有二维码则显示支付链接
         if (result.data.payUrl) {
           console.log('设置支付二维码:', result.data.payUrl);
-          setQrCode(result.data.payUrl); // payUrl就是二维码内容
-          toast.success('订单创建成功，请扫码支付');
-          // 开始轮询支付状态
-          startPolling(result.data.payId);
+          
+          // 生成二维码
+          try {
+            const qrCodeDataUrl = await QRCode.toDataURL(result.data.payUrl, {
+              width: 256,
+              margin: 2,
+              color: {
+                dark: '#000000',
+                light: '#FFFFFF'
+              }
+            });
+            setQrCodeDataUrl(qrCodeDataUrl);
+            setQrCode(result.data.payUrl);
+            toast.success('订单创建成功，请扫码支付');
+            
+            // 开始轮询支付状态
+            startPolling(result.data.payId);
+          } catch (error) {
+            console.error('生成二维码失败:', error);
+            toast.error('生成二维码失败，请重试');
+          }
         } else {
           console.log('没有获取到支付二维码，原始响应:', result.data.rawResponse);
           toast.error('未获取到支付信息，请查看调试信息');
@@ -188,6 +225,7 @@ export default function PaymentModal({
     onPaymentSuccess();
     onClose();
     setQrCode('');
+    setQrCodeDataUrl('');
     setPayUrl('');
     stopPollingFunction();
   };
@@ -278,7 +316,7 @@ export default function PaymentModal({
           </div>
 
           {/* QR Code Display */}
-          {qrCode && (
+          {qrCodeDataUrl && (
             <div className="text-center">
               <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-xl p-6 mb-4">
                 <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center justify-center">
@@ -287,7 +325,7 @@ export default function PaymentModal({
                 </h3>
                 <div className="bg-white p-6 rounded-xl shadow-lg border-2 border-blue-200 dark:border-blue-800 inline-block">
                   <img 
-                    src={qrCode} 
+                    src={qrCodeDataUrl} 
                     alt="蓝鲸支付二维码" 
                     className="w-64 h-64 mx-auto"
                     onError={(e) => {

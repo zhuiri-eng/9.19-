@@ -47,6 +47,7 @@ export interface PaymentResponse {
     price: number;
     reallyPrice: number;
     payUrl: string;
+    qrCode?: string; // 二维码内容
     redirectScript: string;
     rawResponse: string;
   };
@@ -135,6 +136,9 @@ export async function createPaymentOrder(request: PaymentRequest): Promise<Payme
       console.log('提取的订单ID:', orderId);
       console.log('提取的支付URL:', payUrl);
       
+      // 构建完整的支付URL
+      const fullPayUrl = `https://2277857.pay.lanjingzf.com${payUrl}`;
+      
       return {
         success: true,
         message: '订单创建成功，正在跳转到支付页面',
@@ -144,7 +148,8 @@ export async function createPaymentOrder(request: PaymentRequest): Promise<Payme
           payType: parseInt(request.type),
           price: parseFloat(request.price),
           reallyPrice: parseFloat(request.price),
-          payUrl: payUrl,
+          payUrl: fullPayUrl,
+          qrCode: fullPayUrl, // 将支付URL作为二维码内容
           redirectScript: responseText,
           rawResponse: responseText
         }
