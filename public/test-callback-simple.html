@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>回调测试</title>
+</head>
+<body>
+    <h1>回调测试页面</h1>
+    <p>如果您能看到这个页面，说明部署正常！</p>
+    
+    <h2>测试回调</h2>
+    <button onclick="testCallback()">测试回调</button>
+    <div id="result"></div>
+    
+    <script>
+        async function testCallback() {
+            const url = 'https://phenomenal-meerkat-53edff.netlify.app/.netlify/functions/payment-callback?test=1';
+            try {
+                const response = await fetch(url);
+                const text = await response.text();
+                document.getElementById('result').innerHTML = `
+                    <p>状态: ${response.status}</p>
+                    <p>响应: ${text}</p>
+                `;
+            } catch (error) {
+                document.getElementById('result').innerHTML = `<p>错误: ${error.message}</p>`;
+            }
+        }
+    </script>
+</body>
+</html>

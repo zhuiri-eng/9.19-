@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>简单测试页面</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        .test-section { margin: 20px 0; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }
+        .success { background: #d4edda; color: #155724; padding: 15px; border-radius: 8px; margin: 10px 0; }
+        .error { background: #f8d7da; color: #721c24; padding: 15px; border-radius: 8px; margin: 10px 0; }
+        .info { background: #e2e3e5; color: #383d41; padding: 15px; border-radius: 8px; margin: 10px 0; }
+        button { padding: 10px 20px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .url-display { word-break: break-all; font-family: monospace; background: #f8f9fa; padding: 10px; border-radius: 4px; margin: 5px 0; }
+    </style>
+</head>
+<body>
+    <h1>🧪 简单测试页面</h1>
+    
+    <div class="test-section">
+        <h3>✅ 页面加载成功</h3>
+        <div class="success">
+            <p>如果您能看到这个页面，说明Netlify部署正常！</p>
+            <p>当前时间：<span id="currentTime"></span></p>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h3>🔐 签名测试</h3>
+        <div class="info">
+            <p>测试参数：</p>
+            <ul>
+                <li>payId: TEST_1234567890</li>
+                <li>param: 测试商品</li>
+                <li>type: 1</li>
+                <li>price: 0.01</li>
+                <li>reallyPrice: 0.01</li>
+                <li>appSecret: f659709e38ab01a9d77e52cdcda9a914</li>
+            </ul>
+        </div>
+        <button onclick="testSignature()">测试签名计算</button>
+        <div id="signatureResult" class="url-display" style="display: none;"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>🌐 回调测试</h3>
+        <div class="info">
+            <p>测试回调URL：</p>
+            <div class="url-display" id="callbackUrl">点击按钮生成测试URL</div>
+        </div>
+        <button onclick="testCallback()">测试回调</button>
+        <div id="callbackResult" class="url-display" style="display: none;"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>📝 调试信息</h3>
+        <div class="info">
+            <p>网站地址：https://phenomenal-meerkat-53edff.netlify.app</p>
+            <p>异步回调：https://phenomenal-meerkat-53edff.netlify.app/.netlify/functions/payment-callback</p>
+            <p>同步回调：https://phenomenal-meerkat-53edff.netlify.app/callback</p>
+        </div>
+    </div>
+
+    <script>
+        // 显示当前时间
+        document.getElementById('currentTime').textContent = new Date().toLocaleString();
+
+        function testSignature() {
+            const payId = 'TEST_1234567890';
+            const param = '测试商品';
+            const type = '1';
+            const price = '0.01';
+            const reallyPrice = '0.01';
+            const appSecret = 'f659709e38ab01a9d77e52cdcda9a914';
+
+            // 计算签名（使用简单的MD5实现）
+            const signString = payId + param + type + price + reallyPrice + appSecret;
+            
+            // 简单的MD5实现（仅用于演示）
+            function simpleMD5(str) {
+                let hash = 0;
+                if (str.length === 0) return hash.toString(16);
+                for (let i = 0; i < str.length; i++) {
+                    const char = str.charCodeAt(i);
+                    hash = ((hash << 5) - hash) + char;
+                    hash = hash & hash; // Convert to 32bit integer
+                }
+                return Math.abs(hash).toString(16).padStart(8, '0');
+            }
+
+            const signature = simpleMD5(signString);
+            
+            document.getElementById('signatureResult').innerHTML = `
+签名字符串: ${signString}
+计算签名: ${signature}
+字符长度: ${signString.length}
+            `;
+            document.getElementById('signatureResult').style.display = 'block';
+        }
+
+        async function testCallback() {
+            const testUrl = 'https://phenomenal-meerkat-53edff.netlify.app/.netlify/functions/payment-callback?test=1';
+            document.getElementById('callbackUrl').textContent = testUrl;
+            
+            try {
+                const response = await fetch(testUrl);
+                const responseText = await response.text();
+                
+                document.getElementById('callbackResult').innerHTML = `
+响应状态: ${response.status}
+响应内容: ${responseText}
+                `;
+                document.getElementById('callbackResult').style.display = 'block';
+                
+            } catch (error) {
+                document.getElementById('callbackResult').innerHTML = `
+请求失败: ${error.message}
+                `;
+                document.getElementById('callbackResult').style.display = 'block';
+            }
+        }
+    </script>
+</body>
+</html>

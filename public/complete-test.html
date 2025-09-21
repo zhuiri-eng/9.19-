@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>完整回调测试</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        .test-section { margin: 20px 0; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }
+        .success { background: #d4edda; color: #155724; padding: 15px; border-radius: 8px; margin: 10px 0; }
+        .error { background: #f8d7da; color: #721c24; padding: 15px; border-radius: 8px; margin: 10px 0; }
+        .info { background: #e2e3e5; color: #383d41; padding: 15px; border-radius: 8px; margin: 10px 0; }
+        button { padding: 10px 20px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .url-display { word-break: break-all; font-family: monospace; background: #f8f9fa; padding: 10px; border-radius: 4px; margin: 5px 0; }
+        .log { background: #f8f9fa; padding: 10px; border-radius: 4px; font-family: monospace; white-space: pre-wrap; max-height: 300px; overflow-y: auto; }
+    </style>
+</head>
+<body>
+    <h1>🔧 完整回调测试</h1>
+    
+    <div class="test-section">
+        <h3>✅ 页面加载成功</h3>
+        <div class="success">
+            <p>如果您能看到这个页面，说明Netlify部署正常！</p>
+            <p>当前时间：<span id="currentTime"></span></p>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h3>🧪 测试步骤</h3>
+        <div class="info">
+            <p>点击下面的按钮按顺序测试：</p>
+            <ol>
+                <li>测试基础连通性</li>
+                <li>计算正确签名</li>
+                <li>测试完整回调</li>
+            </ol>
+        </div>
+        <button onclick="testBasicConnectivity()">1. 测试基础连通性</button>
+        <button onclick="calculateSignature()">2. 计算签名</button>
+        <button onclick="testFullCallback()">3. 测试完整回调</button>
+    </div>
+
+    <div class="test-section">
+        <h3>📝 测试结果</h3>
+        <div id="testResult" class="log">等待测试...</div>
+    </div>
+
+    <div class="test-section">
+        <h3>🛠️ 蓝鲸支付后台配置</h3>
+        <div class="info">
+            <h4>✅ 在蓝鲸支付后台填写以下信息：</h4>
+            
+            <h5>同步回调地址（returnUrl）：</h5>
+            <div class="url-display">
+                https://effortless-bienenstitch-3b0893.netlify.app/callback
+            </div>
+            
+            <h5>异步回调地址（notifyUrl）：</h5>
+            <div class="url-display">
+                https://effortless-bienenstitch-3b0893.netlify.app/.netlify/functions/payment-callback
+            </div>
+            
+            <h5>通讯密钥：</h5>
+            <div class="url-display">
+                f659709e38ab01a9d77e52cdcda9a914
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const appSecret = 'f659709e38ab01a9d77e52cdcda9a914';
+        const baseUrl = 'https://effortless-bienenstitch-3b0893.netlify.app';
+
+        function log(message) {
+            const logDiv = document.getElementById('testResult');
+            const timestamp = new Date().toLocaleTimeString();
+            logDiv.textContent += `[${timestamp}] ${message}\n`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        function showCurrentTime() {
+            document.getElementById('currentTime').textContent = new Date().toLocaleString();
+        }
+
+        async function testBasicConnectivity() {
+            log('=== 开始测试基础连通性 ===');
+            
+            try {
+                // 测试主站点
+                const mainResponse = await fetch(baseUrl);
+                if (mainResponse.ok) {
+                    log('✅ 主站点连通正常');
+                } else {
+                    log(`❌ 主站点连通失败: ${mainResponse.status}`);
+                }
+
+                // 测试异步回调
+                const asyncResponse = await fetch(`${baseUrl}/.netlify/functions/payment-callback?test=1`);
+                const asyncText = await asyncResponse.text();
+                log(`异步回调测试: ${asyncResponse.status} - ${asyncText}`);
+
+                // 测试同步回调
+                const syncResponse = await fetch(`${baseUrl}/callback?test=1`);
+                const syncText = await syncResponse.text();
+                log(`同步回调测试: ${syncResponse.status} - ${syncText}`);
+
+            } catch (error) {
+                log(`❌ 连通性测试失败: ${error.message}`);
+            }
+        }
+
+        function calculateSignature() {
+            log('=== 开始计算签名 ===');
+            
+            const payId = 'TEST_' + Date.now();
+            const param = '测试商品';
+            const type = '1';
+            const price = '0.01';
+            const reallyPrice = '0.01';
+
+            const signString = `${payId}${param}${type}${price}${reallyPrice}${appSecret}`;
+            const signature = CryptoJS.MD5(signString).toString();
+            
+            log(`测试参数:`);
+            log(`  payId: ${payId}`);
+            log(`  param: ${param}`);
+            log(`  type: ${type}`);
+            log(`  price: ${price}`);
+            log(`  reallyPrice: ${reallyPrice}`);
+            log(`  appSecret: ${appSecret}`);
+            log(`签名字符串: ${signString}`);
+            log(`MD5签名: ${signature}`);
+            log(`字符长度: ${signString.length}`);
+            log(`签名长度: ${signature.length}`);
+            
+            // 保存到全局变量供测试使用
+            window.testData = { payId, param, type, price, reallyPrice, signature };
+            
+            log('✅ 签名计算完成');
+        }
+
+        async function testFullCallback() {
+            if (!window.testData) {
+                log('❌ 请先计算签名！');
+                return;
+            }
+
+            log('=== 开始测试完整回调 ===');
+            
+            const { payId, param, type, price, reallyPrice, signature } = window.testData;
+            
+            const testUrl = `${baseUrl}/.netlify/functions/payment-callback?payId=${encodeURIComponent(payId)}&param=${encodeURIComponent(param)}&type=${type}&price=${price}&reallyPrice=${reallyPrice}&sign=${signature}`;
+            
+            log(`测试URL: ${testUrl}`);
+            
+            try {
+                const response = await fetch(testUrl);
+                const responseText = await response.text();
+                
+                log(`响应状态: ${response.status}`);
+                log(`响应内容: ${responseText}`);
+                
+                if (response.ok && responseText.includes('success')) {
+                    log('✅ 完整回调测试成功！');
+                    log('🎉 回调功能正常工作，可以在蓝鲸支付后台配置回调地址了！');
+                } else if (responseText.includes('error_sign')) {
+                    log('❌ 签名验证失败 - error_sign');
+                    log('可能原因: 签名算法不匹配或参数错误');
+                } else if (responseText.includes('error_params')) {
+                    log('❌ 参数验证失败 - error_params');
+                    log('可能原因: 缺少必要参数');
+                } else {
+                    log(`❌ 其他错误: ${responseText}`);
+                }
+                
+            } catch (error) {
+                log(`❌ 请求失败: ${error.message}`);
+            }
+        }
+
+        // 页面加载时自动开始测试
+        window.onload = function() {
+            showCurrentTime();
+            log('完整回调测试工具已加载');
+            log('点击按钮开始测试...');
+        };
+    </script>
+</body>
+</html>

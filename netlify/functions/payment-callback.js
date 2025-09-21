@@ -50,6 +50,19 @@ exports.handler = async (event, context) => {
     console.log('原始查询参数:', queryParams);
     console.log('解析后的参数:', { payId, param, type, price, reallyPrice, sign });
 
+    // 检查是否是测试请求
+    if (queryParams.test === '1') {
+      console.log('收到测试请求');
+      return {
+        statusCode: 200,
+        headers: {
+          'Content-Type': 'text/plain',
+          'Access-Control-Allow-Origin': '*'
+        },
+        body: 'success - test request received'
+      };
+    }
+
     // 验证必要参数
     if (!payId || !param || !type || !price || !reallyPrice || !sign) {
       console.error('缺少必要参数:', {

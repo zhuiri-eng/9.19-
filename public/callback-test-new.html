@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>回调测试工具 - 新部署</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .test-section { margin: 20px 0; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }
+        .success { background: #d4edda; color: #155724; padding: 15px; border-radius: 8px; margin: 10px 0; }
+        .error { background: #f8d7da; color: #721c24; padding: 15px; border-radius: 8px; margin: 10px 0; }
+        .warning { background: #fff3cd; color: #856404; padding: 15px; border-radius: 8px; margin: 10px 0; }
+        .info { background: #e2e3e5; color: #383d41; padding: 15px; border-radius: 8px; margin: 10px 0; }
+        button { padding: 10px 20px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .url-display { word-break: break-all; font-family: monospace; background: #f8f9fa; padding: 10px; border-radius: 4px; margin: 5px 0; }
+        .log { background: #f8f9fa; padding: 10px; border-radius: 4px; font-family: monospace; white-space: pre-wrap; max-height: 300px; overflow-y: auto; }
+    </style>
+</head>
+<body>
+    <h1>🔧 回调测试工具 - 新部署</h1>
+    
+    <div class="test-section">
+        <h3>📋 当前配置</h3>
+        <div class="info">
+            <p><strong>网站地址：</strong>https://effortless-bienenstitch-3b0893.netlify.app</p>
+            <p><strong>同步回调地址：</strong>https://effortless-bienenstitch-3b0893.netlify.app/callback</p>
+            <p><strong>异步回调地址：</strong>https://effortless-bienenstitch-3b0893.netlify.app/.netlify/functions/payment-callback</p>
+            <p><strong>通讯密钥：</strong>f659709e38ab01a9d77e52cdcda9a914</p>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h3>🧪 测试回调参数</h3>
+        <div class="info">
+            <p><strong>payId:</strong> TEST_1234567890</p>
+            <p><strong>param:</strong> 测试商品</p>
+            <p><strong>type:</strong> 1</p>
+            <p><strong>price:</strong> 0.01</p>
+            <p><strong>reallyPrice:</strong> 0.01</p>
+            <p><strong>appSecret:</strong> f659709e38ab01a9d77e52cdcda9a914</p>
+        </div>
+        <button onclick="calculateSignature()">计算签名</button>
+        <div id="signatureResult" class="url-display" style="display: none;"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>🌐 测试回调</h3>
+        <div class="info">
+            <p>点击按钮测试回调功能：</p>
+        </div>
+        <button onclick="testAsyncCallback()">测试异步回调</button>
+        <button onclick="testSyncCallback()">测试同步回调</button>
+        <button onclick="testBasicConnectivity()">测试基础连通性</button>
+        <div id="testResult" class="log">等待测试...</div>
+    </div>
+
+    <div class="test-section">
+        <h3>🛠️ 蓝鲸支付后台配置</h3>
+        <div class="info">
+            <h4>✅ 在蓝鲸支付后台填写以下信息：</h4>
+            
+            <h5>同步回调地址（returnUrl）：</h5>
+            <div class="url-display">
+                https://effortless-bienenstitch-3b0893.netlify.app/callback
+            </div>
+            
+            <h5>异步回调地址（notifyUrl）：</h5>
+            <div class="url-display">
+                https://effortless-bienenstitch-3b0893.netlify.app/.netlify/functions/payment-callback
+            </div>
+            
+            <h5>通讯密钥：</h5>
+            <div class="url-display">
+                f659709e38ab01a9d77e52cdcda9a914
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const appSecret = 'f659709e38ab01a9d77e52cdcda9a914';
+        const baseUrl = 'https://effortless-bienenstitch-3b0893.netlify.app';
+
+        function log(message) {
+            const logDiv = document.getElementById('testResult');
+            const timestamp = new Date().toLocaleTimeString();
+            logDiv.textContent += `[${timestamp}] ${message}\n`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        function calculateSignature() {
+            const payId = 'TEST_1234567890';
+            const param = '测试商品';
+            const type = '1';
+            const price = '0.01';
+            const reallyPrice = '0.01';
+
+            const signString = `${payId}${param}${type}${price}${reallyPrice}${appSecret}`;
+            const signature = CryptoJS.MD5(signString).toString();
+            
+            document.getElementById('signatureResult').innerHTML = `
+签名字符串: ${signString}
+MD5签名: ${signature}
+字符长度: ${signString.length}
+签名长度: ${signature.length}
+            `;
+            document.getElementById('signatureResult').style.display = 'block';
+            
+            log(`签名计算完成: ${signature}`);
+        }
+
+        async function testAsyncCallback() {
+            log('=== 开始测试异步回调 ===');
+            
+            const payId = 'TEST_ASYNC_' + Date.now();
+            const param = '异步测试商品';
+            const type = '1';
+            const price = '0.01';
+            const reallyPrice = '0.01';
+
+            const signString = `${payId}${param}${type}${price}${reallyPrice}${appSecret}`;
+            const signature = CryptoJS.MD5(signString).toString();
+            
+            const testUrl = `${baseUrl}/.netlify/functions/payment-callback?payId=${encodeURIComponent(payId)}&param=${encodeURIComponent(param)}&type=${type}&price=${price}&reallyPrice=${reallyPrice}&sign=${signature}`;
+            
+            log(`测试URL: ${testUrl}`);
+            
+            try {
+                const response = await fetch(testUrl);
+                const responseText = await response.text();
+                
+                log(`响应状态: ${response.status}`);
+                log(`响应内容: ${responseText}`);
+                
+                if (response.ok && responseText.includes('success')) {
+                    log('✅ 异步回调测试成功！');
+                } else if (responseText.includes('error_sign')) {
+                    log('❌ 签名验证失败 - error_sign');
+                } else {
+                    log('❌ 异步回调测试失败');
+                }
+                
+            } catch (error) {
+                log(`❌ 请求失败: ${error.message}`);
+            }
+        }
+
+        async function testSyncCallback() {
+            log('=== 开始测试同步回调 ===');
+            
+            const payId = 'TEST_SYNC_' + Date.now();
+            const param = '同步测试商品';
+            const type = '2';
+            const price = '0.01';
+            const reallyPrice = '0.01';
+
+            const signString = `${payId}${param}${type}${price}${reallyPrice}${appSecret}`;
+            const signature = CryptoJS.MD5(signString).toString();
+            
+            const testUrl = `${baseUrl}/callback?payId=${encodeURIComponent(payId)}&param=${encodeURIComponent(param)}&type=${type}&price=${price}&reallyPrice=${reallyPrice}&sign=${signature}`;
+            
+            log(`测试URL: ${testUrl}`);
+            
+            try {
+                const response = await fetch(testUrl);
+                const responseText = await response.text();
+                
+                log(`响应状态: ${response.status}`);
+                log(`响应内容: ${responseText}`);
+                
+                if (response.ok) {
+                    log('✅ 同步回调测试成功！');
+                } else {
+                    log('❌ 同步回调测试失败');
+                }
+                
+            } catch (error) {
+                log(`❌ 请求失败: ${error.message}`);
+            }
+        }
+
+        async function testBasicConnectivity() {
+            log('=== 开始测试基础连通性 ===');
+            
+            try {
+                // 测试主站点
+                const mainResponse = await fetch(baseUrl);
+                if (mainResponse.ok) {
+                    log('✅ 主站点连通正常');
+                } else {
+                    log(`❌ 主站点连通失败: ${mainResponse.status}`);
+                }
+
+                // 测试异步回调
+                const asyncResponse = await fetch(`${baseUrl}/.netlify/functions/payment-callback?test=1`);
+                log(`异步回调响应: ${asyncResponse.status} - ${await asyncResponse.text()}`);
+
+                // 测试同步回调
+                const syncResponse = await fetch(`${baseUrl}/callback?test=1`);
+                log(`同步回调响应: ${syncResponse.status} - ${await syncResponse.text()}`);
+
+            } catch (error) {
+                log(`❌ 连通性测试失败: ${error.message}`);
+            }
+        }
+
+        // 页面加载时自动开始测试
+        window.onload = function() {
+            log('回调测试工具已加载');
+            log('开始自动测试...');
+            setTimeout(() => {
+                testBasicConnectivity();
+            }, 1000);
+        };
+    </script>
+</body>
+</html>
