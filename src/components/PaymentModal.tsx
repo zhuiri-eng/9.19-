@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { PaymentType, createPaymentOrder, PaymentStatus, pollPaymentStatus, testApiConnection } from '@/services/paymentService';
+import { PaymentType, createPaymentOrder, PaymentStatus, pollPaymentStatus, testApiConnection, checkPaymentStatusManually } from '@/services/paymentService';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import QRCode from 'qrcode';
@@ -43,6 +43,40 @@ export default function PaymentModal({
     } catch (error) {
       toast.error('API测试失败');
       console.error('API测试错误:', error);
+    }
+  };
+
+  // 手动检查支付状态
+  const handleCheckPaymentStatus = async () => {
+    if (!currentPayId) {
+      toast.error('没有订单号，无法检查支付状态');
+      return;
+    }
+
+    try {
+      console.log('手动检查支付状态:', currentPayId);
+      const result = await checkPaymentStatusManually(currentPayId);
+      
+      if (result.success) {
+        console.log('支付状态检查结果:', result.data);
+        toast.success(`支付状态: ${JSON.stringify(result.data)}`);
+        
+        // 如果检测到支付成功，更新状态
+        if (result.data && (
+          result.data.status === 'success' || 
+          result.data.payStatus === 'success' ||
+          result.data.isPaid === true ||
+          result.data.message?.includes('成功')
+        )) {
+          setPaymentStatus(PaymentStatus.SUCCESS);
+          handlePaymentSuccess();
+        }
+      } else {
+        toast.error(result.message);
+      }
+    } catch (error) {
+      console.error('检查支付状态失败:', error);
+      toast.error('检查支付状态失败');
     }
   };
 
@@ -452,6 +486,15 @@ export default function PaymentModal({
             >
               测试API
             </button>
+            
+            {currentPayId && (
+              <button
+                onClick={handleCheckPaymentStatus}
+                className="px-4 py-3 bg-green-500 hover:bg-green-600 text-white font-medium rounded-lg transition-colors"
+              >
+                检查支付状态
+              </button>
+            )}
             
             {!qrCode && !payUrl ? (
               <button

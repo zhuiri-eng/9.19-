@@ -234,6 +234,35 @@ export async function queryPaymentStatus(payId: string): Promise<PaymentResponse
   }
 }
 
+// 手动检查支付状态（用于调试）
+export async function checkPaymentStatusManually(payId: string): Promise<{success: boolean, message: string, data?: any}> {
+  try {
+    console.log('手动检查支付状态:', payId);
+    
+    const result = await queryPaymentStatus(payId);
+    
+    if (result.success) {
+      console.log('手动检查结果:', result.data);
+      return {
+        success: true,
+        message: '查询成功',
+        data: result.data
+      };
+    } else {
+      return {
+        success: false,
+        message: result.message || '查询失败'
+      };
+    }
+  } catch (error) {
+    console.error('手动检查支付状态失败:', error);
+    return {
+      success: false,
+      message: `检查失败: ${error instanceof Error ? error.message : '未知错误'}`
+    };
+  }
+}
+
 // 测试API连接
 export async function testApiConnection(): Promise<{success: boolean, message: string}> {
   try {
@@ -304,14 +333,25 @@ export async function pollPaymentStatus(
     const result = await queryPaymentStatus(payId);
     
     if (result.success && result.data) {
-      const status = result.data.status || result.data.payStatus;
+      console.log('查询结果:', result.data);
       
-      if (status === 'success' || status === 'paid') {
+      // 检查多种可能的状态字段
+      const status = result.data.status || result.data.payStatus || result.data.state || result.data.code;
+      const isPaid = result.data.isPaid || result.data.paid || result.data.success;
+      
+      console.log('解析状态:', { status, isPaid, rawData: result.data });
+      
+      // 检查支付成功的各种可能状态
+      if (status === 'success' || status === 'paid' || status === '1' || 
+          isPaid === true || isPaid === 'true' || 
+          result.data.message?.includes('成功') ||
+          result.data.msg?.includes('成功')) {
         console.log('支付成功');
         onStatusChange(PaymentStatus.SUCCESS);
         onComplete(true);
         return;
-      } else if (status === 'failed' || status === 'cancelled') {
+      } else if (status === 'failed' || status === 'cancelled' || status === '0' || 
+                 isPaid === false || isPaid === 'false') {
         console.log('支付失败或取消');
         onStatusChange(PaymentStatus.FAILED);
         onComplete(false);
